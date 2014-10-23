@@ -1,100 +1,377 @@
+// OpenGlDisplayList.cpp : Defines the entry point for the console application.
+//
+
+#include <math.h>
 #include <stdio.h>
 #include <GL/glut.h>
 
-int sidewidth = 800;
-int sideheight = 600;
+#define sqr(x) ((x)*(x))
+#define ROTX 1
+#define ROTY 2
+#define ROTZ 3
+#define DIRX 4
+#define DIRY 5
+#define DIRZ 6
+#define FRONT 7
+#define BACK 8
 
-// draw a car centered at x=0 and z=0, and with bottom y=0
-// with y as the up direction
-// with z as the front direction
-// with length 2 and width 1
-void DrawCar() {
-	// draw the driver
-	glPushMatrix();
-	glTranslatef(0.25, 1.25, 0.5);
-	glutSolidSphere(0.25, 10, 10); // r, nLatitudes, nLongitudes
-	glPopMatrix();
-	// draw the car
-	glPushMatrix();
-	glTranslatef(0.0, 0.5, 0.0);
-	glScalef(1.0, 1.0, 2.0);
-	glutSolidCube(1); // side length
-	glPopMatrix();
-}
+class CPoint3D {
+public:
+	float x, y, z;
 
-void sideGlutDisplay()
-{
-	glClearColor(0.0f, 0.0f, 0.0f, 1.0f); // Set background color to black 
-	glClear(GL_COLOR_BUFFER_BIT); // Clear the background)
+	CPoint3D(){};
+	CPoint3D(float x1, float y1, float z1)
+	{
+		x = x1; y = y1; z = z1;
+	}
 
-	float light_ambient[4] = { 0.2, 0.2, 0.2, 1.0 }; // r, g, b, a
-	float light_diffuse[4] = { 0.8, 0.3, 0.1, 1.0 }; // r, g, b, a
-	float light_specular[4] = { 0.8, 0.3, 0.1, 1.0 }; // r, g, b, a
-	float light_position[4] = { -1.0, 0.0, 0.0, 0.0 }; // x, y, z, w
+	void Set(float x1, float y1, float z1)
+	{
+		x = x1; y = y1; z = z1;
+	}
+	void Normalize()
+	{
+		float L = sqr(x) + sqr(y) + sqr(z);
+		if (L>0.0f)
+		{
+			x /= L; y /= L; z /= L;
+		}
+	}
 
-	float ad_col[4] = { 1.0, 0.5, 0.5, 1.0 }; // r, g, b, a
-	float ad_col2[4] = { 1.0, 1.0, 1.0, 1.0 }; // r, g, b, a
-	float spec_col[4] = { 1.0, 1.0, 1.0, 1.0 }; // r, g, b, a
+	CPoint3D operator +(CPoint3D p)
+	{
+		x += p.x; y += p.y; z += p.z; return *this;
+	}
+	CPoint3D operator -(CPoint3D p)
+	{
+		x -= p.x; y -= p.y; z -= p.z; return *this;
+	}
+	CPoint3D operator *(CPoint3D p)
+	{
+		x *= p.x; y *= p.y; z *= p.z; return *this;
+	}
+	CPoint3D operator /(CPoint3D p)
+	{
+		x /= p.x; y /= p.y; z /= p.z; return *this;
+	}
 
-	glClearColor(0.0, 0.0, 0.0, 0.0);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+};
+
+class CCamera{
+public:
+	CPoint3D P0, At, Up;
+	float AngX, AngY, AngZ;
+
+	CCamera()
+	{
+		P0.Set(0.0f, 0.0f, 0.0f); At.Set(0.0f, 0.0f, 1.0f); Up.Set(0.0f, 1.0f, 0.0f); AngX = 0.0f; AngY = 0.0f;  AngZ = 0.0f;
+	}
+	CCamera(CPoint3D p0, CPoint3D p, CPoint3D up)
+	{
+		P0 = p0; At = p; Up = up; AngX = 0.0f; AngY = 0.0f;  AngZ = 0.0f;
+	}
+
+	void Set(CPoint3D p0, CPoint3D p, CPoint3D up)
+	{
+		P0 = p0; At = p; Up = up; AngX = 0.0f; AngY = 0.0f;  AngZ = 0.0f;
+	}
+	void Set(float x0, float y0, float z0, float px0, float py0, float pz0, float upx, float upy, float upz)
+	{
+		P0.Set(x0, y0, z0); At.Set(px0, py0, pz0); Up.Set(upx, upy, upz); AngX = 0.0f; AngY = 0.0f;  AngZ = 0.0f;
+	}
+	void SetUp(float x1, float y1, float z1)
+	{
+		Up.x = x1; Up.y = y1; Up.z = z1;
+	}
+	void SetUp(CPoint3D up)
+	{
+		Up = up;
+	}
+	void SetPosition(float x, float y, float z)
+	{
+		P0.Set(x, y, z);
+	}
+	void SetPosition(CPoint3D p)
+	{
+		P0 = p;
+	}
+	void SetDirection(CPoint3D D)
+	{
+		At = D;
+	}
+	void SetDirection(float x, float y, float z)
+	{
+		At.Set(x, y, z);
+	}
+	void SetRotateX(float ang)
+	{
+		AngX = ang;
+	}
+	void SetRotateY(float ang)
+	{
+		AngY = ang;
+	}
+	void SetRotateZ(float ang)
+	{
+		AngZ = ang;
+	}
+	CPoint3D GetPosition()
+	{
+		return P0;
+	}
+	CPoint3D GetDirection()
+	{
+		return At;
+	}
+
+	void RotateX() // use to perform/update X rotation
+	{
+		glRotatef(AngX, 1.0f, 0.0f, 0.0f);
+	}
+
+	void RotateY()
+	{
+		glRotatef(AngY, 0.0f, 1.0f, 0.0f);
+	}
+	void RotateZ()
+	{
+		glRotatef(AngZ, 0.0f, 0.0f, 1.0f);
+	}
+
+	void RotateX(float ang)  // Equivalent to Rotate in X from angle 0 to ang
+	{
+		AngX = ang;
+		glRotatef(AngX, 1.0f, 0.0f, 0.0f);
+	}
+	void RotateY(float ang)
+	{
+		// TODO
+	}
+	void RotateZ(float ang)
+	{
+		// TODO
+	}
+
+	void RotateRelX(float ang) // Incremental, acummulated rotation in X
+	{
+		AngX += ang;
+		glRotatef(AngX, 1.0f, 0.0f, 0.0f);
+	}
+	void RotateRelY(float ang)
+	{
+		// TODO
+	}
+	void RotateRelZ(float ang)
+	{
+		// TODO
+	}
+	void LookAt()  // call gluLookAt
+	{
+		gluLookAt((GLdouble)P0.x, (GLdouble)P0.y, (GLdouble)P0.z,
+			(GLdouble)At.x, (GLdouble)At.y, (GLdouble)At.z,
+			(GLdouble)Up.x, (GLdouble)Up.y, (GLdouble)Up.z);
+	}
+	void Update()
+	{
+		glLoadIdentity();
+		// TODO // Rotation in x, y and z
+	}
+};
+
+float angle = 0.0;
+float x = 0.0f, y = 1.75f, z = 5.0f;
+float lx = 0.0f, ly = 0.0f, lz = -1.0f;
+
+float ratio = 1.0;
+int frame, time, timebase = 0;
+char s[30];
+CCamera cam;
+GLuint DLid;
+
+GLuint createDL(void);
+
+void changeSize(int w, int h)	{
+	// Prevent a divide by zero, when window is too short
+	// (you cant make a window of zero width).
+	if (h == 0) h = 1;
+
+	ratio = 1.0f * w / h;
+	// Reset the coordinate system before modifying
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	gluPerspective(45.0, (float)sidewidth / (float)sideheight, 5.0, 5000.0);
-	// theta, aspect, dnear, dfar
-	glViewport(0, 0, sidewidth, sideheight); // startx, starty, xsize, ysize 
+
+	// Set the viewport to be the entire window
+	glViewport(0, 0, w, h);
+
+	// Set the clipping volume
+	gluPerspective(45, ratio, 1, 1000);
 	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
+	// TODO // Set camera initial position 
+	// this is for the snow man scenario 
+	cam.Set(x, y, z, x + lx, y + ly, z + lz, 0.0f, 1.0f, 0.0f);
+	cam.Update();
+}
 
-	glEnable(GL_LIGHTING);
+void initScene() {
 	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_NORMALIZE);
+	// Load or call scenario
+	DLid = createDL();
+}
 
-	glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient);
-	glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
-	glLightfv(GL_LIGHT0, GL_SPECULAR, light_specular);
-	glLightfv(GL_LIGHT0, GL_POSITION, light_position);
-	glEnable(GL_LIGHT0);
 
-	glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, ad_col);
-	glMaterialfv(GL_FRONT, GL_SPECULAR, spec_col);
+void drawSnowMan() {
+	glColor3f(1.0f, 1.0f, 1.0f);
 
-	// viewer is at (-10,10,-10) looking towards the center of the terrain
-	gluLookAt(-10, 10, -10, 128, 0, 128, 0, 1, 0);
+	// Draw Body	
+	glTranslatef(0.0f, 0.75f, 0.0f);
+	glutSolidSphere(0.75f, 20, 20);
 
-	// draw the terrain
-	// a 256x256 square with lower left corner (0,0,0)
-	// up direction is y
+	// Draw Head
+	glTranslatef(0.0f, 1.0f, 0.0f);
+	glutSolidSphere(0.25f, 20, 20);
+
+	// Draw Eyes
+	glPushMatrix();
+	glColor3f(0.0f, 0.0f, 0.0f);
+	glTranslatef(0.05f, 0.10f, 0.18f);
+	glutSolidSphere(0.05f, 10, 10);
+	glTranslatef(-0.1f, 0.0f, 0.0f);
+	glutSolidSphere(0.05f, 10, 10);
+	glPopMatrix();
+
+	// Draw Nose
+	glColor3f(1.0f, 0.5f, 0.5f);
+	glRotatef(0.0f, 1.0f, 0.0f, 0.0f);
+	glutSolidCone(0.08f, 0.5f, 10, 2);
+}
+
+
+
+GLuint createDL() {
+	GLuint snowManDL, loopDL;
+
+	snowManDL = glGenLists(1);
+	loopDL = glGenLists(1);
+
+	glNewList(snowManDL, GL_COMPILE);
+	drawSnowMan();
+	glEndList();
+
+	glNewList(loopDL, GL_COMPILE);
+	for (int i = -3; i < 3; i++) {
+		for (int j = -3; j < 3; j++) {
+			glPushMatrix();
+			glTranslatef(i*10.0f, 0, j * 10.0f);
+			glCallList(snowManDL);
+			glPopMatrix();
+		}
+	}
+	glEndList();
+
+	return(loopDL);
+}
+
+
+void renderScene(void) {
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	// Draw ground
+
+	glColor3f(0.9f, 0.9f, 0.9f);
 	glBegin(GL_QUADS);
-	glNormal3f(0.0, 1.0, 0.0);
-	glVertex3f(0.0, 0.0, 0.0);
-	glVertex3f(256.0, 0.0, 0.0);
-	glVertex3f(256.0, 0.0, 256.0);
-	glVertex3f(0.0, 0.0, 256.0);
+	glVertex3f(-100.0f, 0.0f, -100.0f);
+	glVertex3f(-100.0f, 0.0f, 100.0f);
+	glVertex3f(100.0f, 0.0f, 100.0f);
+	glVertex3f(100.0f, 0.0f, -100.0f);
 	glEnd();
-	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, ad_col2);
-	// draw the first car at the origin pointing in the z direction
-	glPushMatrix();
-	DrawCar();
-	glPopMatrix();
-	// draw the second car at (0,0,10) pointing 45 degrees inwards 
-	glPushMatrix();
-	glTranslatef(0.0, 0.0, 10.0);
-	glRotatef(45.0, 0.0, 1.0, 0.0);
-	DrawCar();
-	glPopMatrix();
+
+	// Draw 36 SnowMen
+
+	glCallList(DLid);
+	frame++;
+	time = glutGet(GLUT_ELAPSED_TIME);
+	if (time - timebase > 1000) {
+		sprintf_s(s, "FPS:%4.2f", frame*1000.0 / (time - timebase));
+		glutSetWindowTitle(s);
+		timebase = time;
+		frame = 0;
+	}
 	glutSwapBuffers();
-
-	glFlush(); // Render now 
 }
 
-int main(int argc, char** argv)
+//TODO // RotateCamera can be a method of CCamera
+void RotateCamera(int rotMode, float ang) {
+	switch (rotMode) {
+		case ROTX: cam.SetRotateX(ang); break;
+		case ROTY: //TO do;break;
+		case ROTZ: cam.SetRotateZ(ang); break;
+	}
+	cam.Update();
+}
+
+// TODO // MoveCamera can be method also can deal with speed
+void MoveCamera(int diretion /* TODO: ,... */) {
+	switch (diretion){
+		// do some transformation if needed 
+		case DIRX: x = x + 0 /* TODO + ... */; break;
+		case DIRY: y = y + 0 /* TODO + ... */; break;
+		case DIRZ: z = z + 0 /* TODO + ... */; break;
+		case FRONT: // move forward following camera direction
+		case BACK: // move backward following camera direction
+			break;
+	}
+	// TODO
+	// call camera SetPosition;
+	// call camera Update;
+}
+
+float da = 0.5f;
+
+void inputKey(unsigned char c, int x, int y) {
+	switch (c) {
+		// TODO all your key input
+		default: break;
+	}
+}
+
+void mouse(int button, int state, int x, int y)
 {
-	glutInit(&argc, argv);					// Inicializa GLUT 
-	
-	glutInitWindowSize(sidewidth, sideheight);// Tamanho de Janela
-	glutInitWindowPosition(200, 100);		// Posiçao inicial da janela
-	glutCreateWindow("CCI-36 Lab4");		// Cria Janela
-	glutDisplayFunc(sideGlutDisplay);		// Registra display pra repintar janela
-	glutMainLoop();							// Main Loop de eventos
+	switch (button) {
+		//  button can be GLUT_LEFT_BUTTON, GLUT_MIDDLE_BUTTON, or GLUT_RIGHT_BUTTON.
+		// state can be r GLUT_UP or GLUT_DOWN (pressed)
+		case GLUT_LEFT_BUTTON:
+			if (state == GLUT_DOWN) {
+				// TODO change parameter you want
+				// call glutPostRedisplay if display must be update for new parameters
+				glutPostRedisplay();
+			}
+			break;
+		default:
+			break;
+	}
 }
+
+
+
+int main(int argc, char **argv)
+{
+	glutInit(&argc, argv);
+	glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA);
+	glutInitWindowPosition(100, 100);
+	glutInitWindowSize(400, 400);
+	glutCreateWindow("Lab4");
+
+	initScene();
+
+	glutKeyboardFunc(inputKey);
+
+	glutDisplayFunc(renderScene);
+	glutIdleFunc(renderScene);
+
+	glutReshapeFunc(changeSize);
+	glutMouseFunc(mouse);
+	glutMainLoop();
+
+	return(0);
+}
+
