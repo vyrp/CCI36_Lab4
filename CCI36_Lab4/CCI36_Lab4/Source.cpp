@@ -38,19 +38,19 @@ public:
 		}
 	}
 
-	CPoint3D operator +(CPoint3D p)
+	CPoint3D operator +=(CPoint3D p)
 	{
 		x += p.x; y += p.y; z += p.z; return *this;
 	}
-	CPoint3D operator -(CPoint3D p)
+	CPoint3D operator -=(CPoint3D p)
 	{
 		x -= p.x; y -= p.y; z -= p.z; return *this;
 	}
-	CPoint3D operator *(CPoint3D p)
+	CPoint3D operator *=(CPoint3D p)
 	{
 		x *= p.x; y *= p.y; z *= p.z; return *this;
 	}
-	CPoint3D operator /(CPoint3D p)
+	CPoint3D operator /=(CPoint3D p)
 	{
 		x /= p.x; y /= p.y; z /= p.z; return *this;
 	}
@@ -61,9 +61,11 @@ class CCamera{
 public:
 	CPoint3D P0, At, Up;
 	float AngX, AngY, AngZ;
+	float speed;
 
 	CCamera()
 	{
+		speed = 0.5;
 		P0.Set(0.0f, 0.0f, 0.0f); At.Set(0.0f, 0.0f, 1.0f); Up.Set(0.0f, 1.0f, 0.0f); AngX = 0.0f; AngY = 0.0f;  AngZ = 0.0f;
 	}
 	CCamera(CPoint3D p0, CPoint3D p, CPoint3D up)
@@ -145,11 +147,13 @@ public:
 	}
 	void RotateY(float ang)
 	{
-		// TODO
+		AngY = ang;
+		glRotatef(AngY, 0.0f, 1.0f, 0.0f);
 	}
 	void RotateZ(float ang)
 	{
-		// TODO
+		AngZ = ang;
+		glRotatef(AngZ, 0.0f, 0.0f, 1.0f);
 	}
 
 	void RotateRelX(float ang) // Incremental, acummulated rotation in X
@@ -159,12 +163,80 @@ public:
 	}
 	void RotateRelY(float ang)
 	{
-		// TODO
+		AngY += ang;
+		glRotatef(AngY, 0.0, 1.0f, 0.0f);
 	}
 	void RotateRelZ(float ang)
 	{
-		// TODO
+		AngY += ang;
+		glRotatef(AngZ, 0.0, 0.0f, 1.0f);
 	}
+
+	void IncreaseSpeed() {
+		speed *= 1.1;
+	}
+
+	void DecreaseSpeed() {
+		speed /= 1.1;
+	}
+
+	void MoveFront() {
+		CPoint3D L = At;
+		L -= P0;
+		L *= CPoint3D(speed, speed, speed);
+		P0 += L;
+		At += L;
+
+	}
+
+	void MoveBack() {
+		CPoint3D L = At;
+		L -= P0;
+		L *= CPoint3D(speed, speed, speed);
+		P0 -= L;
+		At -= L;
+	}
+
+	void MoveRight() {
+
+	}
+
+	void MoveLeft() {
+
+	}
+
+	void MoveUp() {
+
+	}
+
+	void MoveDown() {
+
+	}
+
+	void LookUp() {
+
+	}
+
+	void LookDown() {
+
+	}
+
+	void LookRight() {
+
+	}
+
+	void LookLeft() {
+
+	}
+
+	void RollLeft() {
+
+	}
+
+	void RollRight() {
+
+	}
+
 	void LookAt()  // call gluLookAt
 	{
 		gluLookAt((GLdouble)P0.x, (GLdouble)P0.y, (GLdouble)P0.z,
@@ -174,13 +246,14 @@ public:
 	void Update()
 	{
 		glLoadIdentity();
-		// TODO // Rotation in x, y and z
+		LookAt();
 	}
 };
 
 float angle = 0.0;
-float x = 0.0f, y = 1.75f, z = 5.0f;
-float lx = 0.0f, ly = 0.0f, lz = -1.0f;
+float xi = 0.0f, yi = 1.75f, zi = 5.0f;
+float lx0 = 0.0f, ly0 = 0.0f, lz0 = -1.0f;
+float upx0 = 0.0f, upy0 = 1.0f, upz0 = 0.0f;
 
 float ratio = 1.0;
 int frame, time, timebase = 0;
@@ -195,7 +268,7 @@ void changeSize(int w, int h)	{
 	// (you cant make a window of zero width).
 	if (h == 0) h = 1;
 
-	ratio = 1.0f * w / h;
+	ratio = (1.0f * w) / h;
 	// Reset the coordinate system before modifying
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
@@ -206,9 +279,8 @@ void changeSize(int w, int h)	{
 	// Set the clipping volume
 	gluPerspective(45, ratio, 1, 1000);
 	glMatrixMode(GL_MODELVIEW);
-	// TODO // Set camera initial position 
+
 	// this is for the snow man scenario 
-	cam.Set(x, y, z, x + lx, y + ly, z + lz, 0.0f, 1.0f, 0.0f);
 	cam.Update();
 }
 
@@ -216,6 +288,8 @@ void initScene() {
 	glEnable(GL_DEPTH_TEST);
 	// Load or call scenario
 	DLid = createDL();
+	cam.Set(xi, yi, zi, xi + lx0, yi + ly0, zi + lz0, upx0, upy0, upz0);
+	cam.Update();
 }
 
 
@@ -273,6 +347,18 @@ GLuint createDL() {
 
 
 void renderScene(void) {
+	/*
+	if (deltaMove)
+		moveMeFlat(deltaMove);
+	if (deltaAngle) {
+		angle += deltaAngle;
+		orientMe(angle);
+	}
+	*/
+	//cam.SetPosition(x, y, z);
+
+	cam.Update();
+
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// Draw ground
@@ -285,7 +371,7 @@ void renderScene(void) {
 	glVertex3f(100.0f, 0.0f, -100.0f);
 	glEnd();
 
-	// Draw 36 SnowMen
+	// Draw 36 Snow Men
 
 	glCallList(DLid);
 	frame++;
@@ -296,62 +382,67 @@ void renderScene(void) {
 		timebase = time;
 		frame = 0;
 	}
+
+
 	glutSwapBuffers();
 }
 
-//TODO // RotateCamera can be a method of CCamera
-void RotateCamera(int rotMode, float ang) {
-	switch (rotMode) {
-		case ROTX: cam.SetRotateX(ang); break;
-		case ROTY: //TO do;break;
-		case ROTZ: cam.SetRotateZ(ang); break;
-	}
-	cam.Update();
-}
-
-// TODO // MoveCamera can be method also can deal with speed
-void MoveCamera(int diretion /* TODO: ,... */) {
-	switch (diretion){
-		// do some transformation if needed 
-		case DIRX: x = x + 0 /* TODO + ... */; break;
-		case DIRY: y = y + 0 /* TODO + ... */; break;
-		case DIRZ: z = z + 0 /* TODO + ... */; break;
-		case FRONT: // move forward following camera direction
-		case BACK: // move backward following camera direction
-			break;
-	}
-	// TODO
-	// call camera SetPosition;
-	// call camera Update;
-}
-
-float da = 0.5f;
 
 void inputKey(unsigned char c, int x, int y) {
 	switch (c) {
-		// TODO all your key input
-		default: break;
+	case 'w':
+		cam.LookUp();
+		break;
+	case 'a':
+		cam.LookLeft();
+		break;
+	case 's':
+		cam.LookDown();
+		break;
+	case 'd':
+		cam.LookRight();
+		break;
+	case 'z':
+		cam.RollLeft();
+		break;
+	case 'x':
+		cam.RollRight();
+		break;
+	case 'p':
+		cam.MoveUp();
+		break;
+	case 'l':
+		cam.MoveDown();
+		break;
+	case '+':
+		cam.IncreaseSpeed();
+		break;
+	case '-':
+		cam.DecreaseSpeed();
+		break;
+	case 27:
+		break;
+	default: break;
 	}
 }
 
-void mouse(int button, int state, int x, int y)
-{
-	switch (button) {
-		//  button can be GLUT_LEFT_BUTTON, GLUT_MIDDLE_BUTTON, or GLUT_RIGHT_BUTTON.
-		// state can be r GLUT_UP or GLUT_DOWN (pressed)
-		case GLUT_LEFT_BUTTON:
-			if (state == GLUT_DOWN) {
-				// TODO change parameter you want
-				// call glutPostRedisplay if display must be update for new parameters
-				glutPostRedisplay();
-			}
-			break;
-		default:
-			break;
+
+void specialInputKey(int key, int x, int y) {
+	switch (key) {
+	case GLUT_KEY_LEFT: 
+		cam.MoveLeft();
+		break;
+	case GLUT_KEY_RIGHT: 
+		cam.MoveRight();
+		break;
+	case GLUT_KEY_UP: 
+		cam.MoveFront();
+		break;
+	case GLUT_KEY_DOWN: 
+		cam.MoveBack();
+		break;
 	}
 }
-
-
 
 int main(int argc, char **argv)
 {
@@ -363,13 +454,16 @@ int main(int argc, char **argv)
 
 	initScene();
 
-	glutKeyboardFunc(inputKey);
 
+
+	glutKeyboardFunc(inputKey);
+	glutSpecialFunc(specialInputKey);
+	
 	glutDisplayFunc(renderScene);
 	glutIdleFunc(renderScene);
 
 	glutReshapeFunc(changeSize);
-	glutMouseFunc(mouse);
+
 	glutMainLoop();
 
 	return(0);
