@@ -1,5 +1,13 @@
-// OpenGlDisplayList.cpp : Defines the entry point for the console application.
-//
+/*
+* CCI-36
+* Lab 04: Introdução a OpenGL
+*
+* Alunos:
+*     Felipe Vincent Yannik Romero Pereira
+*     Luiz Filipe Martins Ramos
+*
+* Data: 23/10/14
+*/
 
 #include <math.h>
 #include <stdio.h>
@@ -20,6 +28,7 @@ public:
 	float x, y, z;
 
 	CPoint3D(){};
+
 	CPoint3D(float x1, float y1, float z1)
 	{
 		x = x1; y = y1; z = z1;
@@ -29,6 +38,7 @@ public:
 	{
 		x = x1; y = y1; z = z1;
 	}
+
 	void Normalize()
 	{
 		float L = sqr(x) + sqr(y) + sqr(z);
@@ -38,45 +48,59 @@ public:
 		}
 	}
 
-	CPoint3D operator +=(CPoint3D p)
+	CPoint3D& operator +=(CPoint3D p)
 	{
 		x += p.x; y += p.y; z += p.z; return *this;
 	}
-	CPoint3D operator -=(CPoint3D p)
+	CPoint3D& operator -=(CPoint3D p)
 	{
 		x -= p.x; y -= p.y; z -= p.z; return *this;
 	}
-	CPoint3D operator *=(CPoint3D p)
+	CPoint3D& operator *=(CPoint3D p)
 	{
 		x *= p.x; y *= p.y; z *= p.z; return *this;
 	}
-	CPoint3D operator /=(CPoint3D p)
+	CPoint3D& operator /=(CPoint3D p)
 	{
 		x /= p.x; y /= p.y; z /= p.z; return *this;
 	}
-
 };
 
+CPoint3D operator +(CPoint3D p1, CPoint3D p2)
+{
+	return CPoint3D(p1.x + p2.x, p1.y + p2.y, p1.z + p2.z);
+}
+CPoint3D operator -(CPoint3D p1, CPoint3D p2)
+{
+	return CPoint3D(p1.x - p2.x, p1.y - p2.y, p1.z - p2.z);
+}
+CPoint3D operator *(CPoint3D p1, CPoint3D p2)
+{
+	return CPoint3D(p1.x * p2.x, p1.y * p2.y, p1.z * p2.z);
+}
+CPoint3D operator /(CPoint3D p1, CPoint3D p2)
+{
+	return CPoint3D(p1.x / p2.x, p1.y / p2.y, p1.z / p2.z);
+}
+
+CPoint3D operator *(CPoint3D p1, float f)
+{
+	return CPoint3D(p1.x * f, p1.y * f, p1.z * f);
+}
+
 class CCamera{
-public:
+private:
 	CPoint3D P0, At, Up;
 	float AngX, AngY, AngZ;
 	float speed;
 
+public:
 	CCamera()
 	{
 		speed = 0.5;
 		P0.Set(0.0f, 0.0f, 0.0f); At.Set(0.0f, 0.0f, 1.0f); Up.Set(0.0f, 1.0f, 0.0f); AngX = 0.0f; AngY = 0.0f;  AngZ = 0.0f;
 	}
-	CCamera(CPoint3D p0, CPoint3D p, CPoint3D up)
-	{
-		P0 = p0; At = p; Up = up; AngX = 0.0f; AngY = 0.0f;  AngZ = 0.0f;
-	}
-
-	void Set(CPoint3D p0, CPoint3D p, CPoint3D up)
-	{
-		P0 = p0; At = p; Up = up; AngX = 0.0f; AngY = 0.0f;  AngZ = 0.0f;
-	}
+	
 	void Set(float x0, float y0, float z0, float px0, float py0, float pz0, float upx, float upy, float upz)
 	{
 		P0.Set(x0, y0, z0); At.Set(px0, py0, pz0); Up.Set(upx, upy, upz); AngX = 0.0f; AngY = 0.0f;  AngZ = 0.0f;
@@ -84,26 +108,6 @@ public:
 	void SetUp(float x1, float y1, float z1)
 	{
 		Up.x = x1; Up.y = y1; Up.z = z1;
-	}
-	void SetUp(CPoint3D up)
-	{
-		Up = up;
-	}
-	void SetPosition(float x, float y, float z)
-	{
-		P0.Set(x, y, z);
-	}
-	void SetPosition(CPoint3D p)
-	{
-		P0 = p;
-	}
-	void SetDirection(CPoint3D D)
-	{
-		At = D;
-	}
-	void SetDirection(float x, float y, float z)
-	{
-		At.Set(x, y, z);
 	}
 	void SetRotateX(float ang)
 	{
@@ -116,14 +120,6 @@ public:
 	void SetRotateZ(float ang)
 	{
 		AngZ = ang;
-	}
-	CPoint3D GetPosition()
-	{
-		return P0;
-	}
-	CPoint3D GetDirection()
-	{
-		return At;
 	}
 
 	void RotateX() // use to perform/update X rotation
@@ -181,18 +177,13 @@ public:
 	}
 
 	void MoveFront() {
-		CPoint3D L = At;
-		L -= P0;
-		L *= CPoint3D(speed, speed, speed);
+		CPoint3D L = (At - P0) * speed;
 		P0 += L;
 		At += L;
-
 	}
 
 	void MoveBack() {
-		CPoint3D L = At;
-		L -= P0;
-		L *= CPoint3D(speed, speed, speed);
+		CPoint3D L = (At - P0) * speed;
 		P0 -= L;
 		At -= L;
 	}
@@ -237,25 +228,15 @@ public:
 
 	}
 
-	void LookAt()  // call gluLookAt
+	void Update()
 	{
+		glLoadIdentity();
 		gluLookAt((GLdouble)P0.x, (GLdouble)P0.y, (GLdouble)P0.z,
 			(GLdouble)At.x, (GLdouble)At.y, (GLdouble)At.z,
 			(GLdouble)Up.x, (GLdouble)Up.y, (GLdouble)Up.z);
 	}
-	void Update()
-	{
-		glLoadIdentity();
-		LookAt();
-	}
 };
 
-float angle = 0.0;
-float xi = 0.0f, yi = 1.75f, zi = 5.0f;
-float lx0 = 0.0f, ly0 = 0.0f, lz0 = -1.0f;
-float upx0 = 0.0f, upy0 = 1.0f, upz0 = 0.0f;
-
-float ratio = 1.0;
 int frame, time, timebase = 0;
 char s[30];
 CCamera cam;
@@ -268,7 +249,7 @@ void changeSize(int w, int h)	{
 	// (you cant make a window of zero width).
 	if (h == 0) h = 1;
 
-	ratio = (1.0f * w) / h;
+	GLdouble ratio = (1.0 * w) / h;
 	// Reset the coordinate system before modifying
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
@@ -288,10 +269,12 @@ void initScene() {
 	glEnable(GL_DEPTH_TEST);
 	// Load or call scenario
 	DLid = createDL();
+	float xi = 0.0f, yi = 1.75f, zi = 5.0f;
+	float lx0 = 0.0f, ly0 = 0.0f, lz0 = -1.0f;
+	float upx0 = 0.0f, upy0 = 1.0f, upz0 = 0.0f;
 	cam.Set(xi, yi, zi, xi + lx0, yi + ly0, zi + lz0, upx0, upy0, upz0);
 	cam.Update();
 }
-
 
 void drawSnowMan() {
 	glColor3f(1.0f, 1.0f, 1.0f);
@@ -319,8 +302,6 @@ void drawSnowMan() {
 	glutSolidCone(0.08f, 0.5f, 10, 2);
 }
 
-
-
 GLuint createDL() {
 	GLuint snowManDL, loopDL;
 
@@ -344,7 +325,6 @@ GLuint createDL() {
 
 	return(loopDL);
 }
-
 
 void renderScene(void) {
 	/*
@@ -383,7 +363,6 @@ void renderScene(void) {
 		frame = 0;
 	}
 
-
 	glutSwapBuffers();
 }
 
@@ -421,11 +400,11 @@ void inputKey(unsigned char c, int x, int y) {
 		cam.DecreaseSpeed();
 		break;
 	case 27:
+		exit(0);
 		break;
 	default: break;
 	}
 }
-
 
 void specialInputKey(int key, int x, int y) {
 	switch (key) {
@@ -454,18 +433,13 @@ int main(int argc, char **argv)
 
 	initScene();
 
-
-
 	glutKeyboardFunc(inputKey);
 	glutSpecialFunc(specialInputKey);
-	
 	glutDisplayFunc(renderScene);
 	glutIdleFunc(renderScene);
-
 	glutReshapeFunc(changeSize);
 
 	glutMainLoop();
 
 	return(0);
 }
-
