@@ -14,14 +14,6 @@
 #include <GL/glut.h>
 
 #define sqr(x) ((x)*(x))
-#define ROTX 1
-#define ROTY 2
-#define ROTZ 3
-#define DIRX 4
-#define DIRY 5
-#define DIRZ 6
-#define FRONT 7
-#define BACK 8
 
 class CPoint3D {
 public:
@@ -224,7 +216,50 @@ GLuint DLid;
 
 GLuint createDL(void);
 
-void changeSize(int w, int h)	{
+void initLights() {
+	glEnable(GL_LIGHTING);
+	glEnable(GL_NORMALIZE);
+	glEnable(GL_LIGHT0);
+	glEnable(GL_LIGHT1);
+	glEnable(GL_LIGHT2);
+	glEnable(GL_COLOR_MATERIAL);
+}
+
+void executeLights() {
+	GLfloat light_position[4] = { 2.0, 0.75, 0.0, 1.0 }; // x, y, z, w
+	GLfloat light_direction[3] = { -1.0, 0, 0.0 }; // x, y, z
+	GLfloat light_diffuse[4] = { 0.1, 0.1, 0.8, 1.0 }; // r, g, b, a
+	GLfloat light_specular[4] = { 0.1, 0.1, 1.0, 1.0 }; // r, g, b, a
+
+	glLightfv(GL_LIGHT0, GL_POSITION, light_position);
+	glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, light_direction);
+	glLightf(GL_LIGHT0, GL_SPOT_CUTOFF, 30.0f);
+	glLightf(GL_LIGHT0, GL_SPOT_EXPONENT, 50.0f);
+	glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
+	glLightfv(GL_LIGHT0, GL_SPECULAR, light_specular);
+
+	GLfloat light_ambient1[4] = { 0.2, 0.2, 0.2, 1.0 }; // r, g, b, a
+	glLightfv(GL_LIGHT1, GL_AMBIENT, light_ambient1);
+
+	GLfloat light_position2[4] = { 0.0, 4.0, 0.0, 1.0 }; // x, y, z, w
+	GLfloat light_ambient2[4] = { 0.2, 0.2, 0.2, 1.0 }; // r, g, b, a
+	GLfloat light_diffuse2[4] = { 0.7, 0.7, 0.7, 1.0 }; // r, g, b, a
+	GLfloat light_specular2[4] = { 0.9, 0.9, 0.9, 1.0 }; // r, g, b, a
+	glLightfv(GL_LIGHT2, GL_POSITION, light_position2);
+	glLightfv(GL_LIGHT2, GL_AMBIENT, light_ambient2);
+	glLightfv(GL_LIGHT2, GL_DIFFUSE, light_diffuse2);
+	glLightfv(GL_LIGHT2, GL_SPECULAR, light_specular2);
+
+	GLfloat mat_diffuse[] = { 0.8, 0.8, 0.8, 1.0 };
+	//GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
+	GLfloat mat_shininess[] = { 50.0 };
+
+	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, mat_diffuse);
+	//glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, mat_specular);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, mat_shininess);
+}
+
+void changeSize(int w, int h) {
 	// Prevent a divide by zero, when window is too short
 	// (you cant make a window of zero width).
 	if (h == 0) h = 1;
@@ -241,14 +276,19 @@ void changeSize(int w, int h)	{
 	gluPerspective(45, ratio, 1, 1000);
 	glMatrixMode(GL_MODELVIEW);
 
+	//executeLights();
+
 	// this is for the snow man scenario 
 	cam.Update();
 }
 
 void initScene() {
 	glEnable(GL_DEPTH_TEST);
+	initLights();
+
 	// Load or call scenario
 	DLid = createDL();
+
 	float xi = 0.0f, yi = 1.75f, zi = 5.0f;
 	float lx0 = 0.0f, ly0 = 0.0f, lz0 = -1.0f;
 	float upx0 = 0.0f, upy0 = 1.0f, upz0 = 0.0f;
@@ -261,7 +301,7 @@ void drawSnowMan() {
 
 	// Draw Body	
 	glTranslatef(0.0f, 0.75f, 0.0f);
-	glutSolidSphere(0.75f, 20, 20);
+	glutSolidSphere(0.75f, 40, 40);
 
 	// Draw Head
 	glTranslatef(0.0f, 1.0f, 0.0f);
@@ -293,10 +333,11 @@ GLuint createDL() {
 	glEndList();
 
 	glNewList(loopDL, GL_COMPILE);
+	executeLights();
 	for (int i = -3; i < 3; i++) {
 		for (int j = -3; j < 3; j++) {
 			glPushMatrix();
-			glTranslatef(i*10.0f, 0, j * 10.0f);
+			glTranslatef(i * 10.0f, 0, j * 10.0f);
 			glCallList(snowManDL);
 			glPopMatrix();
 		}
@@ -307,21 +348,10 @@ GLuint createDL() {
 }
 
 void renderScene(void) {
-	/*
-	if (deltaMove)
-		moveMeFlat(deltaMove);
-	if (deltaAngle) {
-		angle += deltaAngle;
-		orientMe(angle);
-	}
-	*/
-	//cam.SetPosition(x, y, z);
-
-	cam.Update();
-
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// Draw ground
+	//executeLights();
 
 	glColor3f(0.9f, 0.9f, 0.9f);
 	glBegin(GL_QUADS);
@@ -342,6 +372,8 @@ void renderScene(void) {
 		timebase = time;
 		frame = 0;
 	}
+	
+	cam.Update();
 
 	glutSwapBuffers();
 }
@@ -407,8 +439,8 @@ int main(int argc, char **argv)
 {
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA);
-	glutInitWindowPosition(100, 100);
-	glutInitWindowSize(400, 400);
+	glutInitWindowPosition(200, 200);
+	glutInitWindowSize(800, 600);
 	glutCreateWindow("Lab4");
 
 	initScene();
