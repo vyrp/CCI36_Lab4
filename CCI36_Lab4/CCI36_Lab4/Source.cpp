@@ -104,6 +104,7 @@ private:
 	CPoint3D P0, At, Up;
 	float AngX, AngY, AngZ;
 	float speed;
+	const double DeltaAngle = 0.06;
 
 public:
 	CCamera()
@@ -226,11 +227,19 @@ public:
 	}
 
 	void LookUp() {
-
+		CPoint3D oldL = At - P0;
+		CPoint3D oldUp = Up;
+		CPoint3D newL = oldL * cosf(DeltaAngle * speed) + oldUp * sinf(DeltaAngle * speed);
+		Up = oldUp * cosf(DeltaAngle * speed) - oldL * sinf(DeltaAngle * speed);
+		At = P0 + newL;
 	}
 
 	void LookDown() {
-
+		CPoint3D oldL = At - P0;
+		CPoint3D oldUp = Up;
+		CPoint3D newL = oldL * cosf(DeltaAngle * speed) - oldUp * sinf(DeltaAngle * speed);
+		Up = oldUp * cosf(DeltaAngle * speed) + oldL * sinf(DeltaAngle * speed);
+		At = P0 + newL;
 	}
 
 	void LookRight() {
