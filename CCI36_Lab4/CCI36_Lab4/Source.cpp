@@ -64,6 +64,17 @@ public:
 	{
 		x /= p.x; y /= p.y; z /= p.z; return *this;
 	}
+
+	CPoint3D& operator %=(CPoint3D p)
+	{
+		double nx = y*p.z - z*p.y;
+		double ny = -x*p.z + z*p.x;
+		double nz = x*p.y - y*p.x;
+		x = nx;
+		y = ny;
+		z = nz;
+		return *this;
+	}
 };
 
 CPoint3D operator +(CPoint3D p1, CPoint3D p2)
@@ -189,19 +200,29 @@ public:
 	}
 
 	void MoveRight() {
-
+		CPoint3D L = (At - P0) * speed;
+		L %= Up;
+		P0 += L;
+		At += L;
 	}
 
 	void MoveLeft() {
-
+		CPoint3D L = (At - P0) * speed;
+		L %= Up;
+		P0 -= L;
+		At -= L;
 	}
 
 	void MoveUp() {
-
+		CPoint3D L = Up * speed;
+		P0 += L;
+		At += L;
 	}
 
 	void MoveDown() {
-
+		CPoint3D L = Up * speed;
+		P0 -= L;
+		At -= L;
 	}
 
 	void LookUp() {
