@@ -99,10 +99,14 @@ CPoint3D operator *(CPoint3D p1, float f)
 	return CPoint3D(p1.x * f, p1.y * f, p1.z * f);
 }
 
+CPoint3D operator %(CPoint3D p1, CPoint3D p2)
+{
+	return CPoint3D(p1.y*p2.z - p1.z*p2.y, -p1.x*p2.z + p1.z*p2.x, p1.x*p2.y - p1.y*p2.x);
+}
+
 class CCamera{
 private:
 	CPoint3D P0, At, Up;
-	float AngX, AngY, AngZ;
 	float speed;
 	const double DeltaAngle = 0.06;
 
@@ -110,74 +114,12 @@ public:
 	CCamera()
 	{
 		speed = 0.5;
-		P0.Set(0.0f, 0.0f, 0.0f); At.Set(0.0f, 0.0f, 1.0f); Up.Set(0.0f, 1.0f, 0.0f); AngX = 0.0f; AngY = 0.0f;  AngZ = 0.0f;
+		P0.Set(0.0f, 0.0f, 0.0f); At.Set(0.0f, 0.0f, 1.0f); Up.Set(0.0f, 1.0f, 0.0f);
 	}
 	
 	void Set(float x0, float y0, float z0, float px0, float py0, float pz0, float upx, float upy, float upz)
 	{
-		P0.Set(x0, y0, z0); At.Set(px0, py0, pz0); Up.Set(upx, upy, upz); AngX = 0.0f; AngY = 0.0f;  AngZ = 0.0f;
-	}
-	void SetUp(float x1, float y1, float z1)
-	{
-		Up.x = x1; Up.y = y1; Up.z = z1;
-	}
-	void SetRotateX(float ang)
-	{
-		AngX = ang;
-	}
-	void SetRotateY(float ang)
-	{
-		AngY = ang;
-	}
-	void SetRotateZ(float ang)
-	{
-		AngZ = ang;
-	}
-
-	void RotateX() // use to perform/update X rotation
-	{
-		glRotatef(AngX, 1.0f, 0.0f, 0.0f);
-	}
-
-	void RotateY()
-	{
-		glRotatef(AngY, 0.0f, 1.0f, 0.0f);
-	}
-	void RotateZ()
-	{
-		glRotatef(AngZ, 0.0f, 0.0f, 1.0f);
-	}
-
-	void RotateX(float ang)  // Equivalent to Rotate in X from angle 0 to ang
-	{
-		AngX = ang;
-		glRotatef(AngX, 1.0f, 0.0f, 0.0f);
-	}
-	void RotateY(float ang)
-	{
-		AngY = ang;
-		glRotatef(AngY, 0.0f, 1.0f, 0.0f);
-	}
-	void RotateZ(float ang)
-	{
-		AngZ = ang;
-		glRotatef(AngZ, 0.0f, 0.0f, 1.0f);
-	}
-
-	void RotateRelX(float ang) // Incremental, acummulated rotation in X
-	{
-		AngX += ang;
-		glRotatef(AngX, 1.0f, 0.0f, 0.0f);
-	}
-	void RotateRelY(float ang)
-	{
-		AngY += ang;
-		glRotatef(AngY, 0.0, 1.0f, 0.0f);
-	}
-	void RotateRelZ(float ang)
-	{
-		AngY += ang;
-		glRotatef(AngZ, 0.0, 0.0f, 1.0f);
+		P0.Set(x0, y0, z0); At.Set(px0, py0, pz0); Up.Set(upx, upy, upz);
 	}
 
 	void IncreaseSpeed() {
@@ -243,19 +185,27 @@ public:
 	}
 
 	void LookRight() {
-
+		CPoint3D oldL = At - P0;
+		CPoint3D oldRight = oldL % Up;
+		CPoint3D newL = oldL * cosf(DeltaAngle * speed) + oldRight * sinf(DeltaAngle * speed);
+		At = P0 + newL;
 	}
 
 	void LookLeft() {
-
-	}
-
-	void RollLeft() {
-
+		CPoint3D oldL = At - P0;
+		CPoint3D oldRight = oldL % Up;
+		CPoint3D newL = oldL * cosf(DeltaAngle * speed) - oldRight * sinf(DeltaAngle * speed);
+		At = P0 + newL;
 	}
 
 	void RollRight() {
+		CPoint3D right = (At - P0) % Up;
+		Up = Up * cosf(DeltaAngle * speed) + right * sinf(DeltaAngle * speed);
+	}
 
+	void RollLeft() {
+		CPoint3D right = (At - P0) % Up;
+		Up = Up * cosf(DeltaAngle * speed) - right * sinf(DeltaAngle * speed);
 	}
 
 	void Update()
