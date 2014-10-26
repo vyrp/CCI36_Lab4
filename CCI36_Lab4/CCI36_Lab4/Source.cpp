@@ -34,7 +34,7 @@ public:
 	void Normalize()
 	{
 		float L = sqr(x) + sqr(y) + sqr(z);
-		if (L>0.0f)
+		if (L > 0.0f)
 		{
 			x /= L; y /= L; z /= L;
 		}
@@ -108,7 +108,7 @@ public:
 		speed = 0.5;
 		P0.Set(0.0f, 0.0f, 0.0f); At.Set(0.0f, 0.0f, 1.0f); Up.Set(0.0f, 1.0f, 0.0f);
 	}
-	
+
 	void Set(float x0, float y0, float z0, float px0, float py0, float pz0, float upx, float upy, float upz)
 	{
 		P0.Set(x0, y0, z0); At.Set(px0, py0, pz0); Up.Set(upx, upy, upz);
@@ -208,176 +208,263 @@ public:
 			(GLdouble)Up.x, (GLdouble)Up.y, (GLdouble)Up.z);
 	}
 };
-
-int frame, time, timebase = 0;
-char s[30];
 CCamera cam;
-GLuint DLid;
 
-GLuint createDL(void);
+GLint n = 4;
+GLint fill = 1;
+GLint TOL = 10;
+#define sqr(x) ((x)*(x))
+GLdouble tolerance = sqr(TOL);
+typedef struct { GLfloat x, y, z; } point3D_type;
 
-void initLights() {
-	glEnable(GL_LIGHTING);
-	glEnable(GL_NORMALIZE);
-	glEnable(GL_LIGHT0);
-	glEnable(GL_LIGHT1);
-	glEnable(GL_LIGHT2);
-	glEnable(GL_COLOR_MATERIAL);
+GLint viewport[4];
+GLdouble mvmatrix[16], projmatrix[16];
+
+
+float vAng = 40.0f, asp = 1.0f, nearD = 0.2f, farD = 40.0f;
+
+GLfloat ctrlpoints[4][4][3] =
+//point3D_type ctrlpoints[4][4] =
+{
+	{
+		{ -1.5, -1.5, 4.0 },
+		{ -0.5, -1.5, 2.0 },
+		{ 0.5, -1.5, -1.0 },
+		{ 1.5, -1.5, 2.0 }
+	}, {
+		{ -1.5, -0.5, 1.0 },
+		{ -0.5, -0.5, 3.0 },
+		{ 0.5, -0.5, 0.0 },
+		{ 1.5, -0.5, -1.0 }
+	}, {
+		{ -1.5, 0.5, 4.0 },
+		{ -0.5, 0.5, 0.0 },
+		{ 0.5, 0.5, 3.0 },
+		{ 1.5, 0.5, 4.0 }
+	}, {
+		{ -1.5, 1.5, -2.0 },
+		{ -0.5, 1.5, -2.0 },
+		{ 0.5, 1.5, 0.0 },
+		{ 1.5, 1.5, -1.0 }
+	}
+};
+
+//atenção: n é o grau do polinomio.
+void Casteljau(GLfloat t, point3D_type a[], point3D_type b[], point3D_type c[], int n)
+{
+	int i, j; GLfloat  t_1 = 1 - t;
+	for (i = 0; i <= n; i++)
+		c[i] = a[i];
+	b[0] = a[0];
+	for (j = 1; j <= n; j++)
+	{
+		for (i = 0; i <= n - j; i++)
+		{
+			c[i].x = t_1*c[i].x + t*c[i + 1].x;
+			c[i].y = t_1*c[i].y + t*c[i + 1].y;
+			c[i].z = t_1*c[i].z + t*c[i + 1].z;
+		}
+		b[j] = c[0];
+	}
 }
 
-void executeLights() {
-	GLfloat light_position[4] = { 2.0, 0.75, 0.0, 1.0 }; // x, y, z, w
-	GLfloat light_direction[3] = { -1.0, 0, 0.0 }; // x, y, z
-	GLfloat light_diffuse[4] = { 0.1, 0.1, 0.8, 1.0 }; // r, g, b, a
-	GLfloat light_specular[4] = { 0.1, 0.1, 1.0, 1.0 }; // r, g, b, a
+void SaveBezier(char *file_name, point3D_type a[], GLint n, GLint m)
+{
+	FILE *file;
+	fopen_s(&file, file_name, "w");
+	fprintf(file, "%d %d\n", n, m);
+	for (int j = 0; j < m; j++)
+	{
+		for (int i = 0; i < n; i++)
+			fprintf(file, "%f %f %f , ", a[j*n + i].x, a[j*n + i].y, a[j*n + i].z);
+		fprintf(file, "\n");
+	}
+	fclose(file);
+}
+void LoadBezier(char *file_name, point3D_type a[], GLint n, GLint m)
+{
+	FILE *file;
+	fopen_s(&file, file_name, "r");
 
-	glLightfv(GL_LIGHT0, GL_POSITION, light_position);
-	glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, light_direction);
-	glLightf(GL_LIGHT0, GL_SPOT_CUTOFF, 30.0f);
-	glLightf(GL_LIGHT0, GL_SPOT_EXPONENT, 50.0f);
-	glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
-	glLightfv(GL_LIGHT0, GL_SPECULAR, light_specular);
+	fscanf_s(file, "%d %d\n", &n, &m);
+	for (int j = 0; j < m; j++)
+	{
+		for (int i = 0; i < n; i++)
+			fscanf_s(file, "%f %f %f , ", &a[j*n + i].x, &a[j*n + i].y, &a[j*n + i].z);
+	}
+	fclose(file);
+}
 
-	GLfloat light_ambient1[4] = { 0.2, 0.2, 0.2, 1.0 }; // r, g, b, a
-	glLightfv(GL_LIGHT1, GL_AMBIENT, light_ambient1);
+void BezierSubdivision(GLfloat u, GLfloat v, point3D_type a[],
+	point3D_type b[], point3D_type c[], point3D_type d[], point3D_type e[],
+	GLint n, GLint m)
+{
+	point3D_type *col_a = new point3D_type[m];
+	point3D_type *col_b = new point3D_type[m];
+	point3D_type *col_c = new point3D_type[m];
+	int i, j;
+	for (i = 0; i < n; i++)
+	{
+		for (j = 0; j < m; j++)
+			col_a[j] = a[j*n + i];
+		Casteljau(v, col_a, col_b, col_c, m - 1);
+		for (j = 0; j < m; j++)
+		{
+			b[j*n + i] = col_b[j];
+			c[j*n + i] = col_c[j];
+		}
+	}
 
-	GLfloat light_position2[4] = { 0.0, 4.0, 0.0, 1.0 }; // x, y, z, w
-	GLfloat light_ambient2[4] = { 0.2, 0.2, 0.2, 1.0 }; // r, g, b, a
-	GLfloat light_diffuse2[4] = { 0.7, 0.7, 0.7, 1.0 }; // r, g, b, a
-	GLfloat light_specular2[4] = { 0.9, 0.9, 0.9, 1.0 }; // r, g, b, a
-	glLightfv(GL_LIGHT2, GL_POSITION, light_position2);
-	glLightfv(GL_LIGHT2, GL_AMBIENT, light_ambient2);
-	glLightfv(GL_LIGHT2, GL_DIFFUSE, light_diffuse2);
-	glLightfv(GL_LIGHT2, GL_SPECULAR, light_specular2);
+	for (j = 0; j < m; j++)
+	{
+		Casteljau(u, &b[j*n], &b[j*n], &d[j*n], n - 1);
+		Casteljau(u, &c[j*n], &c[j*n], &e[j*n], n - 1);
+	}
+}
 
-	GLfloat mat_diffuse[] = { 0.8, 0.8, 0.8, 1.0 };
-	//GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
+void DrawBezier(point3D_type a[], GLint n, GLint m, GLint nn, GLint mm)
+{
+	glMap2f(GL_MAP2_VERTEX_3, 0, 1, 3, n, 0, 1, n * 3, m, &(GLfloat &)a[0]);
+	glMapGrid2f(n, 0.0, 1.0, m, 0.0, 1.0);
+	if (fill == 1)
+		glEvalMesh2(GL_FILL, 0, nn, 0, mm);
+	else glEvalMesh2(GL_LINE, 0, nn, 0, mm);
+}
+
+bool Limit(point3D_type a[], GLint n, GLint m)
+{
+	int i, j; GLdouble x1, y1, z1, x2, y2, z2, max = 0.0, d;
+	// analisar os pares (j,i) (j,i+1)
+	for (j = 0; j < m; j++)
+		for (i = 0; i < n - 1; i++)
+		{  // projetar os pontos de controle (j,i) e (j,i+1)
+			gluProject((GLdouble)a[j*n + i].x, (GLdouble)a[j*n + i].y, (GLdouble)a[j*n + i].z,
+				mvmatrix, projmatrix, viewport, &x1, &y1, &z1);
+			gluProject((GLdouble)a[j*n + i + 1].x, (GLdouble)a[j*n + i + 1].y, (GLdouble)a[j*n + i + 1].z,
+				mvmatrix, projmatrix, viewport, &x2, &y2, &z2);
+			d = sqr(x2 - x2) + sqr(y2 - y1);
+			if (d > max)
+				max = d;
+		}
+
+	//TO DO fazer o mesmo na outra direção(j, i) (j + 1, i)
+
+	return (max <= tolerance);
+
+
+}
+
+void BezierRecursiveSubdivision(point3D_type a[], GLint n, GLint m)
+{
+	if (Limit(a, n, m))
+		DrawBezier(a, n, m, n, m);
+	else {
+		point3D_type *b = new point3D_type[m*n];
+		point3D_type *c = new point3D_type[m*n];
+		point3D_type *d = new point3D_type[m*n];
+		point3D_type *e = new point3D_type[m*n];
+		BezierSubdivision(0.5f, 0.5f, a, b, c, d, e, n, m);
+
+		if (Limit(b, n, m))
+			DrawBezier(b, n, m, n, m);
+		else BezierRecursiveSubdivision(b, n, m);
+		//TO DO chamar recursivamente para os ptos de controle c, d, e
+
+	}
+}
+
+void initlights(void)
+{
+	GLfloat ambient[] = { 0.1, 0.7, 0.7, 1.0 };
+	GLfloat position[] = { 0.0, 0.0, 3.0, 2.0 };
+	GLfloat mat_diffuse[] = { 0.1, 0.9, 0.9, 1.0 };
+	GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
 	GLfloat mat_shininess[] = { 50.0 };
 
+	glEnable(GL_LIGHTING);
+	glEnable(GL_LIGHT0);
+
+	glLightfv(GL_LIGHT0, GL_AMBIENT, ambient);
+	glLightfv(GL_LIGHT0, GL_POSITION, position);
+
 	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, mat_diffuse);
-	//glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, mat_specular);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, mat_specular);
 	glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, mat_shininess);
 }
 
-void changeSize(int w, int h) {
-	// Prevent a divide by zero, when window is too short
-	// (you cant make a window of zero width).
-	if (h == 0) h = 1;
 
-	GLdouble ratio = (1.0 * w) / h;
-	// Reset the coordinate system before modifying
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
+GLfloat texpts[2][2][2] = {
+	{ { 0.0, 0.0 }, { 0.0, 1.0 } },
+	{ { 1.0, 0.0 }, { 1.0, 1.0 } }
+};
 
-	// Set the viewport to be the entire window
-	glViewport(0, 0, w, h);
-
-	// Set the clipping volume
-	gluPerspective(45, ratio, 1, 1000);
+void display(void)
+{
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glMapGrid2f(n, 0.0, 1.0, n, 0.0, 1.0);
 	glMatrixMode(GL_MODELVIEW);
-
-	//executeLights();
-
-	// this is for the snow man scenario 
-	cam.Update();
-}
-
-void initScene() {
-	glEnable(GL_DEPTH_TEST);
-	initLights();
-
-	// Load or call scenario
-	DLid = createDL();
-
-	float xi = 0.0f, yi = 1.75f, zi = 5.0f;
-	float lx0 = 0.0f, ly0 = 0.0f, lz0 = -1.0f;
-	float upx0 = 0.0f, upy0 = 1.0f, upz0 = 0.0f;
-	cam.Set(xi, yi, zi, xi + lx0, yi + ly0, zi + lz0, upx0, upy0, upz0);
-	cam.Update();
-}
-
-void drawSnowMan() {
-	glColor3f(1.0f, 1.0f, 1.0f);
-
-	// Draw Body	
-	glTranslatef(0.0f, 0.75f, 0.0f);
-	glutSolidSphere(0.75f, 40, 40);
-
-	// Draw Head
-	glTranslatef(0.0f, 1.0f, 0.0f);
-	glutSolidSphere(0.25f, 20, 20);
-
-	// Draw Eyes
 	glPushMatrix();
-	glColor3f(0.0f, 0.0f, 0.0f);
-	glTranslatef(0.05f, 0.10f, 0.18f);
-	glutSolidSphere(0.05f, 10, 10);
-	glTranslatef(-0.1f, 0.0f, 0.0f);
-	glutSolidSphere(0.05f, 10, 10);
+
+	glRotatef(85.0, 1.0, 1.0, 1.0);
+
+	if (true)//perspectiva)
+	{
+		tolerance = sqr(TOL * 2);
+		gluPerspective(vAng, asp, nearD, farD);
+		//   cam.Set(eye1,look,up);
+
+		cam.Update();
+	}
+
+	BezierRecursiveSubdivision((point3D_type *)ctrlpoints, 4, 4);
 	glPopMatrix();
 
-	// Draw Nose
-	glColor3f(1.0f, 0.5f, 0.5f);
-	glRotatef(0.0f, 1.0f, 0.0f, 0.0f);
-	glutSolidCone(0.08f, 0.5f, 10, 2);
+	glFlush();
+	glutSwapBuffers(); // display the screen just made 
 }
 
-GLuint createDL() {
-	GLuint snowManDL, loopDL;
+void myinit(void)
+{
+	glClearColor(0.0, 0.0, 0.0, 1.0);
+	glEnable(GL_DEPTH_TEST);
+	glMap2f(GL_MAP2_VERTEX_3, 0, 1, 3, 4, 0, 1, 12, 4, &ctrlpoints[0][0][0]);
+	glEnable(GL_MAP2_VERTEX_3);
+	glEnable(GL_AUTO_NORMAL);
+	glEnable(GL_NORMALIZE);
 
-	snowManDL = glGenLists(1);
-	loopDL = glGenLists(1);
+	glMapGrid2f(n, 0.0, 1.0, n, 0.0, 1.0);
+	initlights();
+}
 
-	glNewList(snowManDL, GL_COMPILE);
-	drawSnowMan();
-	glEndList();
-
-	glNewList(loopDL, GL_COMPILE);
-	executeLights();
-	for (int i = -3; i < 3; i++) {
-		for (int j = -3; j < 3; j++) {
-			glPushMatrix();
-			glTranslatef(i * 10.0f, 0, j * 10.0f);
-			glCallList(snowManDL);
-			glPopMatrix();
-		}
+void myReshape(int w, int h)
+{
+	GLfloat f = 1;
+	glViewport(0, 0, w, h);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	if (true)//perspectiva)
+	{
+		gluPerspective(vAng, asp, nearD, farD);
+		//	cam.Set((CPoint3D)eye1, (CPoint3D)look, (CPoint3D)up);
+		cam.Update();
 	}
-	glEndList();
-
-	return(loopDL);
-}
-
-void renderScene(void) {
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	// Draw ground
-	//executeLights();
-
-	glColor3f(0.9f, 0.9f, 0.9f);
-	glBegin(GL_QUADS);
-	glVertex3f(-100.0f, 0.0f, -100.0f);
-	glVertex3f(-100.0f, 0.0f, 100.0f);
-	glVertex3f(100.0f, 0.0f, 100.0f);
-	glVertex3f(100.0f, 0.0f, -100.0f);
-	glEnd();
-
-	// Draw 36 Snow Men
-
-	glCallList(DLid);
-	frame++;
-	time = glutGet(GLUT_ELAPSED_TIME);
-	if (time - timebase > 1000) {
-		sprintf_s(s, "FPS:%4.2f", frame*1000.0 / (time - timebase));
-		glutSetWindowTitle(s);
-		timebase = time;
-		frame = 0;
+	else {
+		if (w <= h)
+			glOrtho(-4.0, 4.0, -4.0 * (GLfloat)h / (GLfloat)w,
+			4.0 * (GLfloat)h / (GLfloat)w, -4.0, 4.0);
+		else
+			glOrtho(-4.0 * (GLfloat)w / (GLfloat)h,
+			4.0 * (GLfloat)w / (GLfloat)h, -4.0, 4.0, -4.0, 4.0);
 	}
-	
-	cam.Update();
 
-	glutSwapBuffers();
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+
+	//cam.setAspect(((float)w)/h);
+	glGetIntegerv(GL_VIEWPORT, viewport);
+	glGetDoublev(GL_MODELVIEW_MATRIX, mvmatrix);
+	glGetDoublev(GL_PROJECTION_MATRIX, projmatrix);
 }
-
 
 void inputKey(unsigned char c, int x, int y) {
 	switch (c) {
@@ -418,40 +505,20 @@ void inputKey(unsigned char c, int x, int y) {
 	}
 }
 
-void specialInputKey(int key, int x, int y) {
-	switch (key) {
-	case GLUT_KEY_LEFT: 
-		cam.MoveLeft();
-		break;
-	case GLUT_KEY_RIGHT: 
-		cam.MoveRight();
-		break;
-	case GLUT_KEY_UP: 
-		cam.MoveFront();
-		break;
-	case GLUT_KEY_DOWN: 
-		cam.MoveBack();
-		break;
-	}
-}
-
 int main(int argc, char **argv)
 {
 	glutInit(&argc, argv);
-	glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA);
+	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
 	glutInitWindowPosition(200, 200);
 	glutInitWindowSize(800, 600);
-	glutCreateWindow("Lab4");
-
-	initScene();
-
+	glutCreateWindow(argv[0]);
+	glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
+	myinit();
+	glutReshapeFunc(myReshape);
+	glutDisplayFunc(display);
 	glutKeyboardFunc(inputKey);
-	glutSpecialFunc(specialInputKey);
-	glutDisplayFunc(renderScene);
-	glutIdleFunc(renderScene);
-	glutReshapeFunc(changeSize);
 
 	glutMainLoop();
-
-	return(0);
+	return 0;
 }
+
