@@ -211,15 +211,15 @@ public:
 CCamera cam;
 
 GLint n = 4;
-GLint fill = 1;
+bool fill = false;
 GLint TOL = 10;
-#define sqr(x) ((x)*(x))
 GLdouble tolerance = sqr(TOL);
 typedef struct { GLfloat x, y, z; } point3D_type;
 
 GLint viewport[4];
 GLdouble mvmatrix[16], projmatrix[16];
-
+bool perspectiva = false;
+GLdouble x_angle = 0.0, y_angle = 0.0, z_angle = 0.0;
 
 float vAng = 40.0f, asp = 1.0f, nearD = 0.2f, farD = 40.0f;
 
@@ -253,8 +253,9 @@ GLfloat ctrlpoints[4][4][3] =
 void Casteljau(GLfloat t, point3D_type a[], point3D_type b[], point3D_type c[], int n)
 {
 	int i, j; GLfloat  t_1 = 1 - t;
-	for (i = 0; i <= n; i++)
+	for (i = 0; i <= n; i++) {
 		c[i] = a[i];
+	}
 	b[0] = a[0];
 	for (j = 1; j <= n; j++)
 	{
@@ -281,6 +282,7 @@ void SaveBezier(char *file_name, point3D_type a[], GLint n, GLint m)
 	}
 	fclose(file);
 }
+
 void LoadBezier(char *file_name, point3D_type a[], GLint n, GLint m)
 {
 	FILE *file;
@@ -295,9 +297,7 @@ void LoadBezier(char *file_name, point3D_type a[], GLint n, GLint m)
 	fclose(file);
 }
 
-void BezierSubdivision(GLfloat u, GLfloat v, point3D_type a[],
-	point3D_type b[], point3D_type c[], point3D_type d[], point3D_type e[],
-	GLint n, GLint m)
+void BezierSubdivision(GLfloat u, GLfloat v, point3D_type a[], point3D_type b[], point3D_type c[], point3D_type d[], point3D_type e[], GLint n, GLint m)
 {
 	point3D_type *col_a = new point3D_type[m];
 	point3D_type *col_b = new point3D_type[m];
@@ -320,24 +320,31 @@ void BezierSubdivision(GLfloat u, GLfloat v, point3D_type a[],
 		Casteljau(u, &b[j*n], &b[j*n], &d[j*n], n - 1);
 		Casteljau(u, &c[j*n], &c[j*n], &e[j*n], n - 1);
 	}
+	delete[] col_a;
+	delete[] col_b;
+	delete[] col_c;
 }
 
 void DrawBezier(point3D_type a[], GLint n, GLint m, GLint nn, GLint mm)
 {
 	glMap2f(GL_MAP2_VERTEX_3, 0, 1, 3, n, 0, 1, n * 3, m, &(GLfloat &)a[0]);
 	glMapGrid2f(n, 0.0, 1.0, m, 0.0, 1.0);
-	if (fill == 1)
+	if (fill)
 		glEvalMesh2(GL_FILL, 0, nn, 0, mm);
-	else glEvalMesh2(GL_LINE, 0, nn, 0, mm);
+	else
+		glEvalMesh2(GL_LINE, 0, nn, 0, mm);
 }
 
 bool Limit(point3D_type a[], GLint n, GLint m)
 {
-	int i, j; GLdouble x1, y1, z1, x2, y2, z2, max = 0.0, d;
+	int i, j;
+	GLdouble x1, y1, z1, x2, y2, z2, max = 0.0, d;
+	
 	// analisar os pares (j,i) (j,i+1)
 	for (j = 0; j < m; j++)
+	{
 		for (i = 0; i < n - 1; i++)
-		{  // projetar os pontos de controle (j,i) e (j,i+1)
+		{
 			gluProject((GLdouble)a[j*n + i].x, (GLdouble)a[j*n + i].y, (GLdouble)a[j*n + i].z,
 				mvmatrix, projmatrix, viewport, &x1, &y1, &z1);
 			gluProject((GLdouble)a[j*n + i + 1].x, (GLdouble)a[j*n + i + 1].y, (GLdouble)a[j*n + i + 1].z,
@@ -346,12 +353,24 @@ bool Limit(point3D_type a[], GLint n, GLint m)
 			if (d > max)
 				max = d;
 		}
+	}
 
 	//TO DO fazer o mesmo na outra direção(j, i) (j + 1, i)
+	for (j = 0; j < m-1; j++)
+	{
+		for (i = 0; i < n; i++)
+		{
+			gluProject((GLdouble)a[j*n + i].x, (GLdouble)a[j*n + i].y, (GLdouble)a[j*n + i].z,
+				mvmatrix, projmatrix, viewport, &x1, &y1, &z1);
+			gluProject((GLdouble)a[(j + 1)*n + i].x, (GLdouble)a[(j + 1)*n + i].y, (GLdouble)a[(j + 1)*n + i + 1].z,
+				mvmatrix, projmatrix, viewport, &x2, &y2, &z2);
+			d = sqr(x2 - x2) + sqr(y2 - y1);
+			if (d > max)
+				max = d;
+		}
+	}
 
 	return (max <= tolerance);
-
-
 }
 
 void BezierRecursiveSubdivision(point3D_type a[], GLint n, GLint m)
@@ -367,9 +386,28 @@ void BezierRecursiveSubdivision(point3D_type a[], GLint n, GLint m)
 
 		if (Limit(b, n, m))
 			DrawBezier(b, n, m, n, m);
-		else BezierRecursiveSubdivision(b, n, m);
-		//TO DO chamar recursivamente para os ptos de controle c, d, e
+		else
+			BezierRecursiveSubdivision(b, n, m);
+		
+		if (Limit(c, n, m))
+			DrawBezier(c, n, m, n, m);
+		else
+			BezierRecursiveSubdivision(c, n, m);
 
+		if (Limit(d, n, m))
+			DrawBezier(d, n, m, n, m);
+		else
+			BezierRecursiveSubdivision(d, n, m);
+
+		if (Limit(e, n, m))
+			DrawBezier(e, n, m, n, m);
+		else
+			BezierRecursiveSubdivision(e, n, m);
+
+		delete[] b;
+		delete[] c;
+		delete[] d;
+		delete[] e;
 	}
 }
 
@@ -405,9 +443,9 @@ void display(void)
 	glMatrixMode(GL_MODELVIEW);
 	glPushMatrix();
 
-	glRotatef(85.0, 1.0, 1.0, 1.0);
+	glRotated(85.0, 1.0, 1.0, 1.0);
 
-	if (true)//perspectiva)
+	if (perspectiva)
 	{
 		tolerance = sqr(TOL * 2);
 		gluPerspective(vAng, asp, nearD, farD);
@@ -442,7 +480,7 @@ void myReshape(int w, int h)
 	glViewport(0, 0, w, h);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	if (true)//perspectiva)
+	if (perspectiva)
 	{
 		gluPerspective(vAng, asp, nearD, farD);
 		//	cam.Set((CPoint3D)eye1, (CPoint3D)look, (CPoint3D)up);
@@ -498,11 +536,15 @@ void inputKey(unsigned char c, int x, int y) {
 	case '-':
 		cam.DecreaseSpeed();
 		break;
+	case 'f':
+		fill = !fill;
+		break;
 	case 27:
 		exit(0);
 		break;
 	default: break;
 	}
+	display();
 }
 
 int main(int argc, char **argv)
