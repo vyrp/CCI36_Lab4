@@ -383,26 +383,10 @@ void BezierRecursiveSubdivision(point3D_type a[], GLint n, GLint m)
 		point3D_type *d = new point3D_type[m*n];
 		point3D_type *e = new point3D_type[m*n];
 		BezierSubdivision(0.5f, 0.5f, a, b, c, d, e, n, m);
-
-		if (Limit(b, n, m))
-			DrawBezier(b, n, m, n, m);
-		else
-			BezierRecursiveSubdivision(b, n, m);
-		
-		if (Limit(c, n, m))
-			DrawBezier(c, n, m, n, m);
-		else
-			BezierRecursiveSubdivision(c, n, m);
-
-		if (Limit(d, n, m))
-			DrawBezier(d, n, m, n, m);
-		else
-			BezierRecursiveSubdivision(d, n, m);
-
-		if (Limit(e, n, m))
-			DrawBezier(e, n, m, n, m);
-		else
-			BezierRecursiveSubdivision(e, n, m);
+		BezierRecursiveSubdivision(b, n, m);
+		BezierRecursiveSubdivision(c, n, m);
+		BezierRecursiveSubdivision(d, n, m);
+		BezierRecursiveSubdivision(e, n, m);
 
 		delete[] b;
 		delete[] c;
@@ -436,6 +420,11 @@ GLfloat texpts[2][2][2] = {
 	{ { 1.0, 0.0 }, { 1.0, 1.0 } }
 };
 
+int width, height;
+double k = 4.0;
+
+void myReshape(int,int);
+
 void display(void)
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -445,14 +434,16 @@ void display(void)
 
 	glRotated(85.0, 1.0, 1.0, 1.0);
 
+	myReshape(width, height);
+	
 	if (perspectiva)
 	{
 		tolerance = sqr(TOL * 2);
 		gluPerspective(vAng, asp, nearD, farD);
-		//   cam.Set(eye1,look,up);
-
-		cam.Update();
 	}
+	cam.Update();
+	
+	
 
 	BezierRecursiveSubdivision((point3D_type *)ctrlpoints, 4, 4);
 	glPopMatrix();
@@ -476,6 +467,8 @@ void myinit(void)
 
 void myReshape(int w, int h)
 {
+	width = w;
+	height = h;
 	GLfloat f = 1;
 	glViewport(0, 0, w, h);
 	glMatrixMode(GL_PROJECTION);
@@ -488,11 +481,11 @@ void myReshape(int w, int h)
 	}
 	else {
 		if (w <= h)
-			glOrtho(-4.0, 4.0, -4.0 * (GLfloat)h / (GLfloat)w,
-			4.0 * (GLfloat)h / (GLfloat)w, -4.0, 4.0);
+			glOrtho(-k, k, -k * (GLfloat)h / (GLfloat)w,
+			k * (GLfloat)h / (GLfloat)w, -k, k);
 		else
-			glOrtho(-4.0 * (GLfloat)w / (GLfloat)h,
-			4.0 * (GLfloat)w / (GLfloat)h, -4.0, 4.0, -4.0, 4.0);
+			glOrtho(-k * (GLfloat)w / (GLfloat)h,
+			k * (GLfloat)w / (GLfloat)h, -k, k, -k, k);
 	}
 
 	glMatrixMode(GL_MODELVIEW);
@@ -547,6 +540,18 @@ void inputKey(unsigned char c, int x, int y) {
 	display();
 }
 
+void specialInputKey(int key, int x, int y) {
+	switch (key) {
+	case GLUT_KEY_UP:
+		k *= 0.9;
+		break;
+	case GLUT_KEY_DOWN:
+		k /= 0.9;
+		break;
+	}
+	display();
+}
+
 int main(int argc, char **argv)
 {
 	glutInit(&argc, argv);
@@ -559,7 +564,7 @@ int main(int argc, char **argv)
 	glutReshapeFunc(myReshape);
 	glutDisplayFunc(display);
 	glutKeyboardFunc(inputKey);
-
+	glutSpecialFunc(specialInputKey);
 	glutMainLoop();
 	return 0;
 }
