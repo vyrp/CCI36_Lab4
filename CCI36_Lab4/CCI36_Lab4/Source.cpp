@@ -251,7 +251,7 @@ void executeLights() {
 	glLightfv(GL_LIGHT2, GL_SPECULAR, light_specular2);
 
 	GLfloat mat_diffuse[] = { 0.8, 0.8, 0.8, 1.0 };
-	//GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
+	GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
 	GLfloat mat_shininess[] = { 50.0 };
 
 	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, mat_diffuse);
@@ -320,16 +320,152 @@ void drawSnowMan() {
 	glColor3f(1.0f, 0.5f, 0.5f);
 	glRotatef(0.0f, 1.0f, 0.0f, 0.0f);
 	glutSolidCone(0.08f, 0.5f, 10, 2);
+
+	// Back to origin
+	glTranslatef(0.0f, -1.0f, 0.0f);
+	glTranslatef(0.0f, -0.75f, 0.0f);
+}
+
+void pyramid(float scale)
+{
+	glPushMatrix();
+	glScalef(scale, scale, scale);
+	glBegin(GL_TRIANGLES);
+	glNormal3f(1, 0, 1);
+	// first triangle
+	glVertex3f(1, 0, 1);
+	glNormal3f(0, 2, 0); 
+	glVertex3f(0, 2, 0); 
+	glNormal3f(-1, 0, 1); 
+	glVertex3f(-1, 0, 1); 
+	glNormal3f(-1, 0, 1);
+	// second triangle
+	glVertex3f(-1, 0, 1); 
+	glNormal3f(0, 2, 0); 
+	glVertex3f(0, 2, 0);
+	glNormal3f(-1, 0, -1); 
+	glVertex3f(-1, 0, -1); 
+	glNormal3f(-1, 0, -1);
+	// third triangle
+	glVertex3f(-1, 0, -1); 
+	glNormal3f(0, 2, 0); 
+	glVertex3f(0, 2, 0); 
+	glNormal3f(1, 0, -1); 
+	glVertex3f(1, 0, -1); 
+	glNormal3f(1, 0, -1);
+	// last triangle
+	glVertex3f(1, 0, -1);
+	glNormal3f(0, 2, 0); 
+	glVertex3f(0, 2, 0); 
+	glNormal3f(1, 0, 1); 
+	glVertex3f(1, 0, 1); 
+	glEnd();
+
+	// square
+	glBegin(GL_TRIANGLES);
+	glNormal3f(-1, 0, 1);
+	glVertex3f(-1, 0, 1);
+	glNormal3f(-1, 0, -1);
+	glVertex3f(-1, 0, -1);
+	glNormal3f(1, 0, 1);
+	glVertex3f(1, 0, 1);
+	glNormal3f(1, 0, 1);
+	glVertex3f(1, 0, 1);
+	glNormal3f(-1, 0, -1);
+	glVertex3f(-1, 0, -1);
+	glNormal3f(1, 0, -1);
+	glVertex3f(1, 0, -1);
+	glEnd();
+	glPopMatrix();
+}
+void drawHouse() {
+	glColor3f(0.5f, 0.1f, 0.8f);
+	glTranslatef(-4.0f, 0.0f, -3.0);
+	glutSolidCube(5);
+	glTranslatef(0, 2.5f, 0);
+	glColor3f(0.8f, 0.1f, 0.1f);
+	pyramid(3);
+
+	// Back to Origin
+	glTranslatef(4.0f, 0.0f, 4.00);
+	glTranslatef(0, -2.5f, 0);
+}
+
+
+void drawTree() {
+
+	glTranslatef(2.0f, 3.0f, 0.0f);
+
+	// Draw trunk
+	glColor3f(0.8f, 0.4f, 0.0f);
+	glRotatef(90.0f, 1.0f, 0.0f, 0.0f);
+	GLUquadricObj *quadratic;
+	quadratic = gluNewQuadric();
+	gluCylinder(quadratic, 0.4f, 0.4f, 3.0f, 32, 32);
+
+	// Draw leaves
+	glRotatef(180.0f, 1.0f, 0.0f, 0.0f);
+	glColor3f(0.1f, 1.0f, 0.1f);
+	glutSolidCone(1.0f, 2.0f, 10, 2);
+	glTranslatef(0.0f, 0.0f, -0.8f);
+	glutSolidCone(1.0f, 2.0f, 10, 2);
+	glTranslatef(0.0f, 0.0f, -0.8f);
+	glutSolidCone(1.0f, 2.0f, 10, 2);
+
+
+	// Back to Origin
+	glRotatef(-180.0f, 1.0f, 0.0f, 0.0f);
+	glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
+}
+
+
+void drawTableWithTeapot() {
+
+	glColor3f(0.8f, 0.4f, 0.0f);
+	glTranslatef(-4.0f, 0.0f, 0);
+
+	//Draw table
+	glRotatef(90.0f, 1.0f, 0.0f, 0.0f);
+	GLUquadricObj *quadratic;
+	quadratic = gluNewQuadric();
+	gluCylinder(quadratic, 0.2f, 0.2f, 3.0f, 32, 32);
+
+	glTranslatef(-1.0f, 0.0f, 0);
+	gluCylinder(quadratic, 0.2f, 0.2f, 3.0f, 32, 32);
+
+	glTranslatef(0.0f, 1.0f, 0.0f);
+	gluCylinder(quadratic, 0.2f, 0.2f, 3.0f, 32, 32);
+
+	glTranslatef(1.0f, 0.0f, 0);
+	gluCylinder(quadratic, 0.2f, 0.2f, 3.0f, 32, 32);
+
+	glTranslatef(-0.5f, -0.5, 0);
+	gluCylinder(quadratic, 1.0f, 1.0f, 0.2f, 32, 32);
+	gluDisk(quadratic, 0, 1, 32, 32);
+
+	//Draw teapot
+	glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
+	glTranslatef(0.0f, 0.3f, 0);
+	glColor3f(0.1f, 0.6f, 0.6f);
+	glutSolidTeapot(0.5);
+
+	//Back to origin
+	glTranslatef(4.0f, 0.0f, 0.0f);
+	glTranslatef(0.5f, -0.5, 0);
+	glTranslatef(0.0f, -0.3f, 0);
 }
 
 GLuint createDL() {
-	GLuint snowManDL, loopDL;
+	GLuint sceneDL, loopDL;
 
-	snowManDL = glGenLists(1);
+	sceneDL = glGenLists(1);
 	loopDL = glGenLists(1);
 
-	glNewList(snowManDL, GL_COMPILE);
+	glNewList(sceneDL, GL_COMPILE);
+	drawHouse();
 	drawSnowMan();
+	drawTree();
+	drawTableWithTeapot();
 	glEndList();
 
 	glNewList(loopDL, GL_COMPILE);
@@ -338,7 +474,7 @@ GLuint createDL() {
 		for (int j = -3; j < 3; j++) {
 			glPushMatrix();
 			glTranslatef(i * 10.0f, 0, j * 10.0f);
-			glCallList(snowManDL);
+			glCallList(sceneDL);
 			glPopMatrix();
 		}
 	}
@@ -351,7 +487,6 @@ void renderScene(void) {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// Draw ground
-	//executeLights();
 
 	glColor3f(0.9f, 0.9f, 0.9f);
 	glBegin(GL_QUADS);
