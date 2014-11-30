@@ -9,11 +9,32 @@
 * Data: 23/10/14
 */
 
+#include <string>
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <ctime>
+
+#define GLEW_STATIC
+#include <GL/glew.h>
+#include <GL/wglew.h> // For wglSwapInterval
+
+#define GLM_FORCE_RADIANS
+#include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/transform.hpp>
+#include <glm/gtx/quaternion.hpp>
+
+
+
 #include <math.h>
 #include <stdio.h>
 #include <GL/glut.h>
 
 #define sqr(x) ((x)*(x))
+#define BUFFER_OFFSET(offset) ((void*)(offset))
+#define MEMBER_OFFSET(s,m) ((char*)NULL + (offsetof(s,m)))
+
 
 class CPoint3D {
 public:
@@ -209,7 +230,7 @@ public:
 	}
 };
 
-int frame, time, timebase = 0;
+int frame, tempo, tempobase = 0;
 char s[30];
 CCamera cam;
 GLuint DLid;
@@ -296,162 +317,15 @@ void initScene() {
 	cam.Update();
 }
 
-void drawSnowMan() {
-	glColor3f(1.0f, 1.0f, 1.0f);
 
-	// Draw Body	
-	glTranslatef(0.0f, 0.75f, 0.0f);
-	glutSolidSphere(0.75f, 40, 40);
-
-	// Draw Head
-	glTranslatef(0.0f, 1.0f, 0.0f);
-	glutSolidSphere(0.25f, 20, 20);
-
-	// Draw Eyes
-	glPushMatrix();
-	glColor3f(0.0f, 0.0f, 0.0f);
-	glTranslatef(0.05f, 0.10f, 0.18f);
-	glutSolidSphere(0.05f, 10, 10);
-	glTranslatef(-0.1f, 0.0f, 0.0f);
-	glutSolidSphere(0.05f, 10, 10);
-	glPopMatrix();
-
-	// Draw Nose
-	glColor3f(1.0f, 0.5f, 0.5f);
-	glRotatef(0.0f, 1.0f, 0.0f, 0.0f);
-	glutSolidCone(0.08f, 0.5f, 10, 2);
-
-	// Back to origin
-	glTranslatef(0.0f, -1.0f, 0.0f);
-	glTranslatef(0.0f, -0.75f, 0.0f);
-}
-
-void pyramid(float scale)
-{
-	glPushMatrix();
-	glScalef(scale, scale, scale);
-	glBegin(GL_TRIANGLES);
-	glNormal3f(1, 0, 1);
-	// first triangle
-	glVertex3f(1, 0, 1);
-	glNormal3f(0, 2, 0); 
-	glVertex3f(0, 2, 0); 
-	glNormal3f(-1, 0, 1); 
-	glVertex3f(-1, 0, 1); 
-	glNormal3f(-1, 0, 1);
-	// second triangle
-	glVertex3f(-1, 0, 1); 
-	glNormal3f(0, 2, 0); 
-	glVertex3f(0, 2, 0);
-	glNormal3f(-1, 0, -1); 
-	glVertex3f(-1, 0, -1); 
-	glNormal3f(-1, 0, -1);
-	// third triangle
-	glVertex3f(-1, 0, -1); 
-	glNormal3f(0, 2, 0); 
-	glVertex3f(0, 2, 0); 
-	glNormal3f(1, 0, -1); 
-	glVertex3f(1, 0, -1); 
-	glNormal3f(1, 0, -1);
-	// last triangle
-	glVertex3f(1, 0, -1);
-	glNormal3f(0, 2, 0); 
-	glVertex3f(0, 2, 0); 
-	glNormal3f(1, 0, 1); 
-	glVertex3f(1, 0, 1); 
-	glEnd();
-
-	// square
-	glBegin(GL_TRIANGLES);
-	glNormal3f(-1, 0, 1);
-	glVertex3f(-1, 0, 1);
-	glNormal3f(-1, 0, -1);
-	glVertex3f(-1, 0, -1);
-	glNormal3f(1, 0, 1);
-	glVertex3f(1, 0, 1);
-	glNormal3f(1, 0, 1);
-	glVertex3f(1, 0, 1);
-	glNormal3f(-1, 0, -1);
-	glVertex3f(-1, 0, -1);
-	glNormal3f(1, 0, -1);
-	glVertex3f(1, 0, -1);
-	glEnd();
-	glPopMatrix();
-}
-void drawHouse() {
-	glColor3f(0.5f, 0.1f, 0.8f);
-	glTranslatef(-4.0f, 0.0f, -3.0);
-	glutSolidCube(5);
-	glTranslatef(0, 2.5f, 0);
-	glColor3f(0.8f, 0.1f, 0.1f);
-	pyramid(3);
-
-	// Back to Origin
-	glTranslatef(4.0f, 0.0f, 4.00);
-	glTranslatef(0, -2.5f, 0);
-}
-
-
-void drawTree() {
-
-	glTranslatef(2.0f, 3.0f, 0.0f);
-
-	// Draw trunk
+void drawTeapot() {
 	glColor3f(0.8f, 0.4f, 0.0f);
-	glRotatef(90.0f, 1.0f, 0.0f, 0.0f);
-	GLUquadricObj *quadratic;
-	quadratic = gluNewQuadric();
-	gluCylinder(quadratic, 0.4f, 0.4f, 3.0f, 32, 32);
-
-	// Draw leaves
-	glRotatef(180.0f, 1.0f, 0.0f, 0.0f);
-	glColor3f(0.1f, 1.0f, 0.1f);
-	glutSolidCone(1.0f, 2.0f, 10, 2);
-	glTranslatef(0.0f, 0.0f, -0.8f);
-	glutSolidCone(1.0f, 2.0f, 10, 2);
-	glTranslatef(0.0f, 0.0f, -0.8f);
-	glutSolidCone(1.0f, 2.0f, 10, 2);
-
-
-	// Back to Origin
-	glRotatef(-180.0f, 1.0f, 0.0f, 0.0f);
-	glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
-}
-
-
-void drawTableWithTeapot() {
-
-	glColor3f(0.8f, 0.4f, 0.0f);
-	glTranslatef(-4.0f, 0.0f, 0);
-
-	//Draw table
-	glRotatef(90.0f, 1.0f, 0.0f, 0.0f);
-	GLUquadricObj *quadratic;
-	quadratic = gluNewQuadric();
-	gluCylinder(quadratic, 0.2f, 0.2f, 3.0f, 32, 32);
-
-	glTranslatef(-1.0f, 0.0f, 0);
-	gluCylinder(quadratic, 0.2f, 0.2f, 3.0f, 32, 32);
-
-	glTranslatef(0.0f, 1.0f, 0.0f);
-	gluCylinder(quadratic, 0.2f, 0.2f, 3.0f, 32, 32);
-
-	glTranslatef(1.0f, 0.0f, 0);
-	gluCylinder(quadratic, 0.2f, 0.2f, 3.0f, 32, 32);
-
-	glTranslatef(-0.5f, -0.5, 0);
-	gluCylinder(quadratic, 1.0f, 1.0f, 0.2f, 32, 32);
-	gluDisk(quadratic, 0, 1, 32, 32);
 
 	//Draw teapot
-	glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
-	glTranslatef(0.0f, 0.3f, 0);
+	glTranslatef(0.0f, 0.8f, 0);
 	glColor3f(0.1f, 0.6f, 0.6f);
 	glutSolidTeapot(0.5);
 
-	//Back to origin
-	glTranslatef(4.0f, 0.0f, 0.0f);
-	glTranslatef(0.5f, -0.5, 0);
 	glTranslatef(0.0f, -0.3f, 0);
 }
 
@@ -462,10 +336,10 @@ GLuint createDL() {
 	loopDL = glGenLists(1);
 
 	glNewList(sceneDL, GL_COMPILE);
-	drawHouse();
-	drawSnowMan();
-	drawTree();
-	drawTableWithTeapot();
+
+
+
+	drawTeapot();
 	glEndList();
 
 	glNewList(loopDL, GL_COMPILE);
@@ -500,11 +374,11 @@ void renderScene(void) {
 
 	glCallList(DLid);
 	frame++;
-	time = glutGet(GLUT_ELAPSED_TIME);
-	if (time - timebase > 1000) {
-		sprintf_s(s, "FPS:%4.2f", frame*1000.0 / (time - timebase));
+	tempo = glutGet(GLUT_ELAPSED_TIME);
+	if (tempo - tempobase > 1000) {
+		sprintf_s(s, "FPS:%4.2f", frame*1000.0 / (tempo - tempobase));
 		glutSetWindowTitle(s);
-		timebase = time;
+		tempobase = tempo;
 		frame = 0;
 	}
 	
@@ -570,23 +444,660 @@ void specialInputKey(int key, int x, int y) {
 	}
 }
 
-int main(int argc, char **argv)
+///////////////////////////////////////////////////////
+
+void IdleGL();
+void DisplayGL();
+void KeyboardGL(unsigned char c, int x, int y);
+void KeyboardUpGL(unsigned char c, int x, int y);
+void SpecialGL(int key, int x, int y);
+void SpecialUpGL(int key, int x, int y);
+void MouseGL(int button, int state, int x, int y);
+void MotionGL(int x, int y);
+void ReshapeGL(int w, int h);
+
+
+int g_iWindowWidth = 800;
+int g_iWindowHeight = 600;
+int g_iWindowHandle = 0;
+
+int g_W, g_A, g_S, g_D, g_Q, g_E;
+bool g_bShift = false;
+
+glm::ivec2 g_MousePos;
+
+glm::quat g_Rotation;
+
+std::clock_t g_PreviousTicks;
+std::clock_t g_CurrentTicks;
+
+//Camera g_Camera;
+glm::vec3 g_InitialCameraPosition;
+glm::quat g_InitialCameraRotation;
+
+struct VertexXYZColor
+{
+	glm::vec3 m_Pos;
+	glm::vec3 m_Color;
+};
+
+// Define the 8 vertices of a unit cube
+VertexXYZColor g_Vertices[8] = {
+		{ glm::vec3(1, 1, 1), glm::vec3(1, 1, 1) }, // 0
+		{ glm::vec3(-1, 1, 1), glm::vec3(0, 1, 1) }, // 1
+		{ glm::vec3(-1, -1, 1), glm::vec3(0, 0, 1) }, // 2
+		{ glm::vec3(1, -1, 1), glm::vec3(1, 0, 1) }, // 3
+		{ glm::vec3(1, -1, -1), glm::vec3(1, 0, 0) }, // 4
+		{ glm::vec3(-1, -1, -1), glm::vec3(0, 0, 0) }, // 5
+		{ glm::vec3(-1, 1, -1), glm::vec3(0, 1, 0) }, // 6
+		{ glm::vec3(1, 1, -1), glm::vec3(1, 1, 0) }, // 7
+};
+
+// Define the vertex indices for the cube.
+// Each set of 6 vertices represents a set of triangles in 
+// counter-clockwise winding order.
+GLuint g_Indices[36] = {
+	0, 1, 2, 2, 3, 0,           // Front face
+	7, 4, 5, 5, 6, 7,           // Back face
+	6, 5, 2, 2, 1, 6,           // Left face
+	7, 0, 3, 3, 4, 7,           // Right face
+	7, 6, 1, 1, 0, 7,           // Top face
+	3, 2, 5, 5, 4, 3            // Bottom face
+};
+
+
+// Vertex array object for the cube.
+GLuint g_vaoCube = 0;
+GLuint g_ShaderProgram = 0;
+// Model, View, Projection matrix uniform variable in shader program.
+GLint g_uniformMVP = -1;
+
+
+
+void InitGLEW()
+{
+	glewExperimental = GL_TRUE;
+	if (glewInit() != GLEW_OK)
+	{
+		std::cerr << "There was a problem initializing GLEW. Exiting..." << std::endl;
+		exit(-1);
+	}
+
+	// Check for 3.3 support.
+	// I've specified that a 3.3 forward-compatible context should be created.
+	// so this parameter check should always pass if our context creation passed.
+	// If we need access to deprecated features of OpenGL, we should check
+	// the state of the GL_ARB_compatibility extension.
+	if (!GLEW_VERSION_3_3)
+	{
+		std::cerr << "OpenGL 3.3 required version support not present." << std::endl;
+		exit(-1);
+	}
+
+#ifdef _WIN32
+	if (WGLEW_EXT_swap_control)
+	{
+		wglSwapIntervalEXT(0); // Disable vertical sync
+	}
+#endif
+}
+
+// Loads a shader and returns the compiled shader object.
+// If the shader source file could not be opened or compiling the 
+// shader fails, then this function returns 0.
+GLuint LoadShader(GLenum shaderType, const std::string& shaderFile)
+{
+	std::ifstream ifs;
+
+	// Load the shader source file.
+	ifs.open(shaderFile);
+
+	if (!ifs)
+	{
+		std::cerr << "Can not open shader file: \"" << shaderFile << "\"" << std::endl;
+		return 0;
+	}
+
+	std::string source(std::istreambuf_iterator<char>(ifs), (std::istreambuf_iterator<char>()));
+	ifs.close();
+
+	// Create a shader object.
+	GLuint shader = glCreateShader(shaderType);
+
+	// Load the shader source for each shader object.
+	const GLchar* sources[] = { source.c_str() };
+	glShaderSource(shader, 1, sources, NULL);
+	glCompileShader(shader);
+	// Check for errors
+	GLint compileStatus;
+	glGetShaderiv(shader, GL_COMPILE_STATUS, &compileStatus);
+	if (compileStatus != GL_TRUE)
+	{
+		GLint logLength;
+		glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLength);
+		GLchar* infoLog = new GLchar[logLength];
+		glGetShaderInfoLog(shader, logLength, NULL, infoLog);
+
+#ifdef _WIN32
+		OutputDebugString(infoLog);
+#else
+		std::cerr << infoLog << std::endl;
+#endif
+		delete infoLog;
+		return 0;
+	}
+	return shader;
+}
+
+
+// Create a shader program from a set of compiled shader objects.
+GLuint CreateShaderProgram(std::vector<GLuint> shaders)
+{
+	// Create a shader program.
+	GLuint program = glCreateProgram();
+
+	// Attach the appropriate shader objects.
+	for (int i = 0; i < shaders.size(); i++)
+	{
+		GLuint shader = shaders[i];
+		glAttachShader(program, shader);
+	}
+
+	// Link the program
+	glLinkProgram(program);
+
+	// Check the link status.
+	GLint linkStatus;
+	glGetProgramiv(program, GL_LINK_STATUS, &linkStatus);
+	if (linkStatus != GL_TRUE)
+	{
+		GLint logLength;
+		glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logLength);
+		GLchar* infoLog = new GLchar[logLength];
+
+		glGetProgramInfoLog(program, logLength, NULL, infoLog);
+
+#ifdef _WIN32
+		OutputDebugString(infoLog);
+#else
+		std::cerr << infoLog << std::endl;
+#endif
+
+		delete infoLog;
+		return 0;
+	}
+	return program;
+}
+
+
+void initGl(int argc, char **argv)
 {
 	glutInit(&argc, argv);
-	glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA);
-	glutInitWindowPosition(200, 200);
-	glutInitWindowSize(800, 600);
-	glutCreateWindow("Lab4");
 
-	initScene();
+	int iScreenWidth = glutGet(GLUT_SCREEN_WIDTH);
+	int iScreenHeight = glutGet(GLUT_SCREEN_HEIGHT);
 
-	glutKeyboardFunc(inputKey);
-	glutSpecialFunc(specialInputKey);
-	glutDisplayFunc(renderScene);
-	glutIdleFunc(renderScene);
-	glutReshapeFunc(changeSize);
+	glutInitDisplayMode(GLUT_RGBA | GLUT_ALPHA | GLUT_DOUBLE | GLUT_DEPTH);
+	glutInitWindowPosition((iScreenWidth - g_iWindowWidth) / 2, (iScreenHeight - g_iWindowHeight) / 2);
+	//glutInitWindowPosition(200, 200);
+	glutInitWindowSize(g_iWindowWidth, g_iWindowHeight);
+
+	g_iWindowHandle = glutCreateWindow("Exame");
+
+
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	glClearDepth(1.0f);
+	glEnable(GL_DEPTH_TEST);
+	//glEnable(GL_CULL_FACE);
+
+	//glutKeyboardFunc(inputKey);
+	//glutSpecialFunc(specialInputKey);
+	//glutDisplayFunc(renderScene);
+	//glutIdleFunc(renderScene);
+	//glutReshapeFunc(changeSize);
+
+	glutIdleFunc(IdleGL);
+	glutDisplayFunc(DisplayGL);
+	glutKeyboardFunc(KeyboardGL);
+	glutKeyboardUpFunc(KeyboardUpGL);
+	glutSpecialFunc(SpecialGL);
+	glutSpecialUpFunc(SpecialUpGL);
+	glutMouseFunc(MouseGL);
+	glutMotionFunc(MotionGL);
+	glutReshapeFunc(ReshapeGL);
+
+}
+
+
+//////////////////////////////////////////////////////
+
+
+
+
+
+
+
+
+
+/**
+* Basic camera class.
+*/
+
+class Camera
+{
+public:
+
+	Camera();
+	Camera(int screenWidth, int screenHeight);
+
+	void SetViewport(int x, int y, int width, int height);
+	glm::vec4 GetViewport() const;
+
+	void SetProjectionRH(float fov, float aspectRatio, float zNear, float zFar);
+
+	void ApplyViewMatrix();
+
+	void SetPosition(const glm::vec3& pos);
+	glm::vec3 GetPosition() const;
+
+	// Translate the camera by some amount. If local is TRUE (default) then the translation should
+	// be applied in the local-space of the camera. If local is FALSE, then the translation is 
+	// applied in world-space.
+	void Translate(const glm::vec3& delta, bool local = true);
+
+	void SetRotation(const glm::quat& rot);
+	glm::quat GetRotation() const;
+
+	void SetEulerAngles(const glm::vec3& eulerAngles);
+	glm::vec3 GetEulerAngles() const;
+
+	// Rotate the camera by some amount.
+	void Rotate(const glm::quat& rot);
+
+	glm::mat4 GetProjectionMatrix();
+	glm::mat4 GetViewMatrix();
+
+protected:
+
+	void UpdateViewMatrix();
+
+	glm::vec4 m_Viewport;
+
+	glm::vec3 m_Position;
+	glm::quat m_Rotation;
+
+	glm::mat4 m_ViewMatrix;
+	glm::mat4 m_ProjectionMatrix;
+
+private:
+	bool m_ViewDirty;
+};
+
+Camera::Camera()
+	: m_Viewport(0)
+	, m_Position(0)
+	, m_Rotation()
+	, m_ProjectionMatrix(1)
+	, m_ViewMatrix(1)
+	, m_ViewDirty(false)
+{}
+
+Camera::Camera(int screenWidth, int screenHeight)
+	: m_Viewport(0, 0, screenWidth, screenHeight)
+	, m_Position(0)
+	, m_Rotation()
+	, m_ProjectionMatrix(1)
+	, m_ViewMatrix(1)
+	, m_ViewDirty(false)
+{
+
+}
+
+void Camera::SetViewport(int x, int y, int width, int height)
+{
+	m_Viewport = glm::vec4(x, y, width, height);
+	glViewport(x, y, width, height);
+}
+
+glm::vec4 Camera::GetViewport() const
+{
+	return m_Viewport;
+}
+
+void Camera::SetProjectionRH(float fov, float aspectRatio, float zNear, float zFar)
+{
+	m_ProjectionMatrix = glm::perspective(glm::radians(fov), aspectRatio, zNear, zFar);
+}
+
+void Camera::ApplyViewMatrix()
+{
+	UpdateViewMatrix();
+}
+
+void Camera::SetPosition(const glm::vec3& pos)
+{
+	m_Position = pos;
+	m_ViewDirty = true;
+}
+
+glm::vec3 Camera::GetPosition() const
+{
+	return m_Position;
+}
+
+void Camera::Translate(const glm::vec3& delta, bool local /* = true */)
+{
+	if (local)
+	{
+		m_Position += m_Rotation * delta;
+	}
+	else
+	{
+		m_Position += delta;
+	}
+	m_ViewDirty = true;
+}
+
+void Camera::SetRotation(const glm::quat& rot)
+{
+	m_Rotation = rot;
+	m_ViewDirty = true;
+}
+
+glm::quat Camera::GetRotation() const
+{
+	return m_Rotation;
+}
+
+void Camera::SetEulerAngles(const glm::vec3& eulerAngles)
+{
+	m_Rotation = glm::quat(glm::radians(eulerAngles));
+}
+
+glm::vec3 Camera::GetEulerAngles() const
+{
+	return glm::degrees(glm::eulerAngles(m_Rotation));
+}
+
+void Camera::Rotate(const glm::quat& rot)
+{
+	m_Rotation = m_Rotation * rot;
+	m_ViewDirty = true;
+}
+
+glm::mat4 Camera::GetProjectionMatrix()
+{
+	return m_ProjectionMatrix;
+}
+
+glm::mat4 Camera::GetViewMatrix()
+{
+	UpdateViewMatrix();
+	return m_ViewMatrix;
+}
+
+void Camera::UpdateViewMatrix()
+{
+	if (m_ViewDirty)
+	{
+		glm::mat4 translate = glm::translate(-m_Position);
+		// Since we know the rotation matrix is orthonormalized, we can simply 
+		// transpose the rotation matrix instead of inversing.
+		glm::mat4 rotate = glm::transpose(glm::toMat4(m_Rotation));
+
+		m_ViewMatrix = rotate * translate;
+
+		m_ViewDirty = false;
+	}
+}
+
+Camera g_Camera;
+
+
+void ReshapeGL(int w, int h)
+{
+	if (h == 0)
+	{
+		h = 1;
+	}
+
+	g_iWindowWidth = w;
+	g_iWindowHeight = h;
+
+	g_Camera.SetViewport(0, 0, w, h);
+	g_Camera.SetProjectionRH(60.0f, w / (float)h, 0.1f, 100.0f);
+
+	glutPostRedisplay();
+}
+
+void DisplayGL()
+{
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	glBindVertexArray(g_vaoCube);
+	glUseProgram(g_ShaderProgram);
+
+	glm::mat4 mvp = g_Camera.GetProjectionMatrix() * g_Camera.GetViewMatrix() * glm::toMat4(g_Rotation);
+	glUniformMatrix4fv(g_uniformMVP, 1, GL_FALSE, glm::value_ptr(mvp));
+
+	glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, BUFFER_OFFSET(0));
+
+	glUseProgram(0);
+	glBindVertexArray(0);
+
+	glutSwapBuffers();
+}
+
+void IdleGL()
+{
+	g_CurrentTicks = std::clock();
+	float deltaTicks = (float)(g_CurrentTicks - g_PreviousTicks);
+	g_PreviousTicks = g_CurrentTicks;
+
+	float fDeltaTime = deltaTicks / (float)CLOCKS_PER_SEC;
+
+	float cameraSpeed = 1.0f;
+	if (g_bShift)
+	{
+		cameraSpeed = 5.0f;
+	}
+
+	g_Camera.Translate(glm::vec3(g_D - g_A, g_Q - g_E, g_S - g_W) * cameraSpeed * fDeltaTime);
+
+	glutPostRedisplay();
+}
+
+void KeyboardGL(unsigned char c, int x, int y)
+{
+	switch (c)
+	{
+	case 'w':
+	case 'W':
+		g_W = 1;
+		break;
+	case 'a':
+	case 'A':
+		g_A = 1;
+		break;
+	case 's':
+	case 'S':
+		g_S = 1;
+		break;
+	case 'd':
+	case 'D':
+		g_D = 1;
+		break;
+	case 'q':
+	case 'Q':
+		g_Q = 1;
+		break;
+	case 'e':
+	case 'E':
+		g_E = 1;
+		break;
+	case 'r':
+	case 'R':
+		g_Camera.SetPosition(g_InitialCameraPosition);
+		g_Camera.SetRotation(g_InitialCameraRotation);
+		g_Rotation = glm::quat();
+		break;
+	case 27:
+		//glutLeaveMainLoop();
+		break;
+	}
+}
+
+void KeyboardUpGL(unsigned char c, int x, int y)
+{
+	switch (c)
+	{
+	case 'w':
+	case 'W':
+		g_W = 0;
+		break;
+	case 'a':
+	case 'A':
+		g_A = 0;
+		break;
+	case 's':
+	case 'S':
+		g_S = 0;
+		break;
+	case 'd':
+	case 'D':
+		g_D = 0;
+		break;
+	case 'q':
+	case 'Q':
+		g_Q = 0;
+		break;
+	case 'e':
+	case 'E':
+		g_E = 0;
+		break;
+
+	default:
+		break;
+	}
+}
+
+void SpecialGL(int key, int x, int y)
+{
+	switch (key)
+	{
+	case GLUT_KEY_HOME:
+	{
+		g_bShift = true;
+	}
+		break;
+	}
+}
+
+void SpecialUpGL(int key, int x, int y)
+{
+	switch (key)
+	{
+	case GLUT_KEY_HOME:
+	{
+		g_bShift = false;
+	}
+		break;
+	}
+}
+
+void MouseGL(int button, int state, int x, int y)
+{
+	g_MousePos = glm::ivec2(x, y);
+}
+
+void MotionGL(int x, int y)
+{
+	glm::ivec2 mousePos = glm::ivec2(x, y);
+	glm::vec2 delta = glm::vec2(mousePos - g_MousePos);
+	g_MousePos = mousePos;
+
+	std::cout << "dX: " << delta.x << " dy: " << delta.y << std::endl;
+
+	glm::quat rotX = glm::angleAxis<float>(glm::radians(delta.y) * 0.5f, glm::vec3(1, 0, 0));
+	glm::quat rotY = glm::angleAxis<float>(glm::radians(delta.x) * 0.5f, glm::vec3(0, 1, 0));
+
+	//g_Camera.Rotate( rotX * rotY );
+	g_Rotation = (rotX * rotY) * g_Rotation;
+
+}
+
+
+
+
+int main(int argc, char **argv)
+{
+	initGl(argc, argv);
+	InitGLEW();
+	//initScene();
+	
+
 
 	glutMainLoop();
+	return 0;
+
+	// Load some shaders.
+	GLuint vertexShader = LoadShader(GL_VERTEX_SHADER, "simpleShader.vert");
+	GLuint fragmentShader = LoadShader(GL_FRAGMENT_SHADER, "simpleShader.frag");
+
+	std::vector<GLuint> shaders;
+	shaders.push_back(vertexShader);
+	shaders.push_back(fragmentShader);
+
+	// Create the shader program.
+	g_ShaderProgram = CreateShaderProgram(shaders);
+	assert(g_ShaderProgram != 0);
+
+	GLint positionAtribID = glGetAttribLocation(g_ShaderProgram, "in_position");
+	GLint colorAtribID = glGetAttribLocation(g_ShaderProgram, "in_color");
+	g_uniformMVP = glGetUniformLocation(g_ShaderProgram, "MVP");
+
+
+	// Create a VAO for the cube.
+	glGenVertexArrays(1, &g_vaoCube);
+	glBindVertexArray(g_vaoCube);
+	
+	GLuint vertexBuffer, indexBuffer;
+	glGenBuffers(1, &vertexBuffer);
+	glGenBuffers(1, &indexBuffer);
+
+	glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(g_Vertices), g_Vertices, GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(g_Indices), g_Indices, GL_STATIC_DRAW);
+
+	glVertexAttribPointer(positionAtribID, 3, GL_FLOAT, false, sizeof(VertexXYZColor), MEMBER_OFFSET(VertexXYZColor, m_Pos));
+	glEnableVertexAttribArray(positionAtribID);
+
+	glVertexAttribPointer(colorAtribID, 3, GL_FLOAT, false, sizeof(VertexXYZColor), MEMBER_OFFSET(VertexXYZColor, m_Color));
+	glEnableVertexAttribArray(colorAtribID);
+
+	// Make sure we disable and unbind everything to prevent rendering issues later.
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	glDisableVertexAttribArray(positionAtribID);
+	glDisableVertexAttribArray(colorAtribID);
+
+
+	glutMainLoop();
+	// Register GLUT callbacks.
+	/*glutIdleFunc(IdleGL);
+	glutDisplayFunc(DisplayGL);
+	glutKeyboardFunc(KeyboardGL);
+	glutKeyboardUpFunc(KeyboardUpGL);
+	glutSpecialFunc(SpecialGL);
+	glutSpecialUpFunc(SpecialUpGL);
+	glutMouseFunc(MouseGL);
+	glutMotionFunc(MotionGL);
+	glutReshapeFunc(ReshapeGL);*/
+
+
 
 	return(0);
 }
